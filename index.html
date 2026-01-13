@@ -1,147 +1,182 @@
 <!DOCTYPE html>
 <html lang="mn">
 <head>
-  <meta charset="UTF-8" />
-  <title>Azhur Game 2.0</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: linear-gradient(135deg, #1d2671, #c33764);
-      color: #fff;
-      text-align: center;
-      overflow: hidden;
-    }
-    h1 { margin: 15px 0; }
-    #info { font-size: 16px; }
-    #message { margin: 8px; font-weight: bold; }
-
-    .item {
-      position: absolute;
-      font-size: 48px;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    #startBtn {
-      margin-top: 20px;
-      padding: 12px 24px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      background: #ffd166;
-      color: #333;
-      cursor: pointer;
-    }
-
-    .shake {
-      animation: shake 0.3s;
-    }
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      50% { transform: translateX(5px); }
-      75% { transform: translateX(-5px); }
-      100% { transform: translateX(0); }
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>AZHUR GAME</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #111;
+  color: #fff;
+  margin: 0;
+}
+h1 { margin-top: 10px; }
+button {
+  padding: 10px 16px;
+  margin: 5px;
+  font-size: 16px;
+}
+#game {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  background: #222;
+  overflow: hidden;
+}
+.star, .boss {
+  position: absolute;
+  cursor: pointer;
+}
+.star {
+  font-size: 32px;
+}
+.boss {
+  font-size: 60px;
+}
+#panel {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+.hidden { display: none; }
+</style>
 </head>
+
 <body>
+<h1>⭐ AZHUR GAME ⭐</h1>
 
-<h1>🔥 Azhur Mission 🔥</h1>
-<div id="info">
-  Level: <span id="level">1</span> |
-  Оноо: <span id="score">0</span> |
-  ⏱ <span id="time">30</span>
+<div id="panel">
+  <div>Үе: <span id="level">1</span></div>
+  <div>Оноо: <span id="score">0</span></div>
+  <div>❤️ <span id="life">3</span></div>
+  <div>🏆 High: <span id="high">0</span></div>
 </div>
-<div id="message">Start дарж эхлээрэй!</div>
 
-<button id="startBtn">START</button>
+<div>
+  Difficulty:
+  <button onclick="setDifficulty(1)">Easy</button>
+  <button onclick="setDifficulty(2)">Medium</button>
+  <button onclick="setDifficulty(3)">Hard</button>
+  <button onclick="toggleSound()">🔊</button>
+</div>
+
+<div id="game"></div>
+
+<button onclick="startGame()">▶ Start</button>
+
+<audio id="sndStar" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="sndBoss" src="https://actions.google.com/sounds/v1/cartoon/creature_roar.ogg"></audio>
+<audio id="sndOver" src="https://actions.google.com/sounds/v1/cartoon/descending_whistle.ogg"></audio>
 
 <script>
 let score = 0;
 let level = 1;
-let timeLeft = 30;
-let gameInterval, timerInterval;
+let life = 3;
+let difficulty = 1;
+let soundOn = true;
+let gameArea = document.getElementById("game");
+let highScore = localStorage.getItem("azhurHigh") || 0;
 
-const scoreEl = document.getElementById("score");
-const levelEl = document.getElementById("level");
-const timeEl = document.getElementById("time");
-const msgEl = document.getElementById("message");
-const startBtn = document.getElementById("startBtn");
+document.getElementById("high").innerText = highScore;
 
-const skins = ["⭐", "💎", "🔥", "👾"];
-const messages = [
-  "Azhur мундаг!",
-  "Хурдан байна!",
-  "Boss ойртож байна!",
-  "Чи gamer шүү!"
-];
-
-function randomPos() {
-  return {
-    x: Math.random() * (window.innerWidth - 60),
-    y: Math.random() * (window.innerHeight - 140) + 80
-  };
+function playSound(id){
+  if(soundOn) document.getElementById(id).play();
 }
 
-function spawnItem() {
-  const item = document.createElement("div");
-  const isBomb = Math.random() < 0.25;
-  item.className = "item";
-  item.innerText = isBomb ? "💣" : skins[(level - 1) % skins.length];
+function toggleSound(){
+  soundOn = !soundOn;
+}
 
-  const pos = randomPos();
-  item.style.left = pos.x + "px";
-  item.style.top = pos.y + "px";
+function setDifficulty(d){
+  difficulty = d;
+}
 
-  item.onclick = () => {
-    if (isBomb) {
-      score = Math.max(0, score - 3);
-      document.body.classList.add("shake");
-      setTimeout(() => document.body.classList.remove("shake"), 300);
-    } else {
-      score++;
-      if (score % 6 === 0) {
-        level++;
-        levelEl.innerText = level;
-        msgEl.innerText = messages[Math.floor(Math.random()*messages.length)];
-      }
+function startGame(){
+  score = 0;
+  level = 1;
+  life = 3;
+  updateUI();
+  nextLevel();
+}
+
+function updateUI(){
+  document.getElementById("score").innerText = score;
+  document.getElementById("level").innerText = level;
+  document.getElementById("life").innerText = life;
+}
+
+function nextLevel(){
+  gameArea.innerHTML = "";
+  let count = level * difficulty;
+
+  if(level % 5 === 0){
+    spawnBoss();
+    return;
+  }
+
+  for(let i=0;i<count;i++){
+    spawnStar();
+  }
+}
+
+function spawnStar(){
+  let star = document.createElement("div");
+  star.className = "star";
+  star.innerText = "⭐";
+  star.style.left = Math.random()*90 + "%";
+  star.style.top = Math.random()*90 + "%";
+
+  star.onclick = () => {
+    playSound("sndStar");
+    score += 10;
+    star.remove();
+    checkClear();
+  };
+
+  gameArea.appendChild(star);
+}
+
+function spawnBoss(){
+  let boss = document.createElement("div");
+  boss.className = "boss";
+  boss.innerText = "👾";
+  boss.style.left = "40%";
+  boss.style.top = "40%";
+  let hp = 5 + difficulty;
+
+  playSound("sndBoss");
+
+  boss.onclick = () => {
+    hp--;
+    score += 20;
+    if(hp <= 0){
+      boss.remove();
+      level++;
+      updateUI();
+      nextLevel();
     }
-    scoreEl.innerText = score;
-    item.remove();
   };
 
-  document.body.appendChild(item);
-  setTimeout(() => item.remove(), 2000);
+  gameArea.appendChild(boss);
 }
 
-function startGame() {
-  score = 0; level = 1; timeLeft = 30;
-  scoreEl.innerText = score;
-  levelEl.innerText = level;
-  timeEl.innerText = timeLeft;
-  msgEl.innerText = "Тоглоом эхэллээ!";
-  startBtn.style.display = "none";
-
-  gameInterval = setInterval(spawnItem, 800);
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    timeEl.innerText = timeLeft;
-    if (timeLeft <= 0) endGame();
-  }, 1000);
+function checkClear(){
+  if(gameArea.children.length === 0){
+    level++;
+    updateUI();
+    nextLevel();
+  }
 }
 
-function endGame() {
-  clearInterval(gameInterval);
-  clearInterval(timerInterval);
-  msgEl.innerText = `GAME OVER 😎 Оноо: ${score}`;
-  startBtn.style.display = "inline-block";
+function gameOver(){
+  playSound("sndOver");
+  if(score > highScore){
+    localStorage.setItem("azhurHigh", score);
+  }
+  alert("Game Over 😢\nScore: " + score);
 }
-
-startBtn.onclick = startGame;
 </script>
-
 </body>
 </html>
