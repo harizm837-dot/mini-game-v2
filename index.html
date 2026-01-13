@@ -2,8 +2,12 @@
 <html lang="mn">
 <head>
 <meta charset="UTF-8">
-<title>AZHUR GAME</title>
+<title>⭐ AZHUR GAME ⭐</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA Support -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
 
 <style>
 body {
@@ -12,14 +16,17 @@ body {
   text-align: center;
   color: white;
   transition: background 1s;
+  overflow-x: hidden;
 }
-h1 { margin: 10px; }
+h1 { margin: 10px; font-size: 2em; }
 #msg { font-size: 18px; margin: 5px; }
 
 #panel {
   display: flex;
   justify-content: space-around;
   font-size: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
 }
 
 #game {
@@ -32,6 +39,11 @@ h1 { margin: 10px; }
   position: absolute;
   font-size: 32px;
   cursor: pointer;
+  transition: transform 0.2s;
+  user-select: none;
+}
+.star:hover, .bomb:hover {
+  transform: scale(1.3) rotate(20deg);
 }
 .bomb { font-size: 36px; }
 
@@ -39,14 +51,35 @@ button {
   padding: 8px 14px;
   margin: 4px;
   font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
 }
+button:hover { transform: scale(1.1); background: #ffcc00; }
+
+#overlay {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  font-size:24px;
+  flex-direction:column;
+  z-index:10;
+  display:none;
+}
+#overlay button { font-size: 18px; padding: 10px 20px; margin-top: 20px;}
 </style>
 </head>
 
 <body>
 
 <h1>⭐ AZHUR GAME ⭐</h1>
-<div id="msg">Азхур мундаг!</div>
+<div id="msg">Азхур мундаг! 💪</div>
 
 <div id="panel">
   <div>Үе: <span id="level">1</span></div>
@@ -58,12 +91,16 @@ button {
   <button onclick="setDifficulty(1)">Easy</button>
   <button onclick="setDifficulty(2)">Medium</button>
   <button onclick="setDifficulty(3)">Hard</button>
-  <button onclick="toggleSound()">🔊</button>
+  <button onclick="toggleSound()">🔊 Sound</button>
 </div>
 
 <div id="game"></div>
-
 <button onclick="startGame()">▶ Start</button>
+
+<div id="overlay">
+  <div id="overMsg">Game Over 😢</div>
+  <button onclick="startGame()">▶ Restart</button>
+</div>
 
 <audio id="sndStar" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
 <audio id="sndBomb" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
@@ -73,22 +110,28 @@ button {
 let score = 0, level = 1, life = 3;
 let difficulty = 1;
 let soundOn = true;
+let gameTimer;
+
 const game = document.getElementById("game");
 const msg = document.getElementById("msg");
+const timerDisplay = document.createElement("div");
+timerDisplay.style.fontSize="16px";
+timerDisplay.style.marginTop="5px";
+document.getElementById("panel").appendChild(timerDisplay);
+const overlay = document.getElementById("overlay");
 
 const messages = [
- "Азхур мундаг! 💪",
- "Сайн байна! 🔥",
- "Үргэлжлүүл! 🚀",
- "Чи чадлаа! ⭐"
+  "Азхур мундаг! 💪",
+  "Азхур сайн байна! Мундаг юм! ⭐",
+  "Үргэлжлүүл! 🚀",
+  "Чи чадлаа! 🔥"
 ];
-
 const backgrounds = [
- "linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)",
- "linear-gradient(120deg,#000428,#004e92)",
- "linear-gradient(120deg,#134E5E,#71B280)",
- "linear-gradient(120deg,#42275a,#734b6d)",
- "linear-gradient(120deg,#232526,#414345)"
+  "linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)",
+  "linear-gradient(120deg,#000428,#004e92)",
+  "linear-gradient(120deg,#134E5E,#71B280)",
+  "linear-gradient(120deg,#42275a,#734b6d)",
+  "linear-gradient(120deg,#232526,#414345)"
 ];
 
 function play(id){
@@ -103,6 +146,7 @@ function toggleSound(){ soundOn = !soundOn; }
 function setDifficulty(d){ difficulty = d; }
 
 function startGame(){
+  overlay.style.display="none";
   score = 0; level = 1; life = 3;
   updateUI();
   nextLevel();
@@ -116,15 +160,28 @@ function updateUI(){
 }
 
 function nextLevel(){
+  clearInterval(gameTimer);
   game.innerHTML = "";
-  document.body.style.background =
-    backgrounds[level % backgrounds.length];
+  document.body.style.background = backgrounds[level % backgrounds.length];
 
   let stars = level * difficulty + 2;
   let bombs = difficulty;
 
   for(let i=0;i<stars;i++) spawnStar();
   for(let i=0;i<bombs;i++) spawnBomb();
+
+  let timeLeft = 20; // 20 секунд level
+  timerDisplay.innerText = timeLeft;
+  gameTimer = setInterval(()=>{
+    timeLeft--;
+    timerDisplay.innerText = timeLeft;
+    if(timeLeft <= 0) {
+      life--;
+      updateUI();
+      if(life<=0) gameOver();
+      else nextLevel();
+    }
+  }, 1000);
 }
 
 function spawnStar(){
@@ -133,11 +190,15 @@ function spawnStar(){
   s.innerText = "⭐";
   s.style.left = Math.random()*90 + "%";
   s.style.top = Math.random()*80 + "%";
+  s.style.transition = `top ${2+Math.random()*2}s linear`;
+
+  setInterval(()=>{ s.style.top = Math.random()*80 + "%"; }, 2000);
 
   s.onclick = () => {
     play("sndStar");
     score += 10;
     s.remove();
+    msg.innerText = "Азхур сайн байна! Мундаг юм! ⭐";
     checkClear();
   };
   game.appendChild(s);
@@ -149,6 +210,8 @@ function spawnBomb(){
   b.innerText = "💣";
   b.style.left = Math.random()*90 + "%";
   b.style.top = Math.random()*80 + "%";
+
+  setInterval(()=>{ b.style.left = Math.random()*90 + "%"; }, 2500);
 
   b.onclick = () => {
     play("sndBomb");
@@ -170,8 +233,10 @@ function checkClear(){
 }
 
 function gameOver(){
+  clearInterval(gameTimer);
   play("sndOver");
-  alert("Game Over 😢\nОноо: " + score);
+  overlay.style.display="flex";
+  document.getElementById("overMsg").innerText = `Game Over 😢\nОноо: ${score}`;
 }
 </script>
 
