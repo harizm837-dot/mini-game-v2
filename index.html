@@ -5,78 +5,68 @@
 <title>⭐ AZHUR GAME ⭐</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- PWA Support -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
-
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  color: white;
-  transition: background 1s;
-  overflow-x: hidden;
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  text-align:center;
+  color:white;
+  background:linear-gradient(120deg,#0f2027,#203a43,#2c5364);
 }
-h1 { margin: 10px; font-size: 2em; }
-#msg { font-size: 18px; margin: 5px; }
-
-#panel {
-  display: flex;
-  justify-content: space-around;
-  font-size: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 5px;
+h1{margin-top:20px}
+button{
+  padding:10px 18px;
+  margin:6px;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
+  cursor:pointer;
 }
-
-#game {
-  position: relative;
-  height: 65vh;
-  overflow: hidden;
-}
-
-.star, .bomb {
-  position: absolute;
-  font-size: 32px;
-  cursor: pointer;
-  transition: transform 0.2s;
-  user-select: none;
-}
-.star:hover, .bomb:hover {
-  transform: scale(1.3) rotate(20deg);
-}
-.bomb { font-size: 36px; }
-
-button {
-  padding: 8px 14px;
-  margin: 4px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
-}
-button:hover { transform: scale(1.1); background: #ffcc00; }
-
-#overlay {
-  position: fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.8);
+#panel{
   display:flex;
+  justify-content:space-around;
+  flex-wrap:wrap;
+  margin:10px;
+}
+#game{
+  height:65vh;
+  position:relative;
+  overflow:hidden;
+}
+.star,.bomb,.boss{
+  position:absolute;
+  cursor:pointer;
+  user-select:none;
+}
+.star{font-size:32px}
+.bomb{font-size:34px}
+.boss{font-size:48px}
+
+#startScreen,#overlay{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,.88);
+  display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
-  color:white;
-  font-size:24px;
-  flex-direction:column;
   z-index:10;
-  display:none;
 }
-#overlay button { font-size: 18px; padding: 10px 20px; margin-top: 20px;}
+
+#overlay{display:none}
 </style>
 </head>
 
 <body>
+
+<!-- START SCREEN -->
+<div id="startScreen">
+  <h1>⭐ AZHUR GAME ⭐</h1>
+  <p>Азхур аа, аав нь чамд зориулж хийсэн тоглоом шүү 💙</p>
+  <button onclick="startGame()">▶ Тоглох</button>
+  <button onclick="toggleKid()">👶 Kid Mode</button>
+</div>
 
 <h1>⭐ AZHUR GAME ⭐</h1>
 <div id="msg">Азхур мундаг! 💪</div>
@@ -84,159 +74,155 @@ button:hover { transform: scale(1.1); background: #ffcc00; }
 <div id="panel">
   <div>Үе: <span id="level">1</span></div>
   <div>Оноо: <span id="score">0</span></div>
-  <div>❤️ <span id="life">3</span></div>
+  <div>❤️ <span id="life">5</span></div>
+  <div>🏆 Best: <span id="bestLevel">1</span></div>
 </div>
 
 <div>
-  <button onclick="setDifficulty(1)">Easy</button>
-  <button onclick="setDifficulty(2)">Medium</button>
-  <button onclick="setDifficulty(3)">Hard</button>
-  <button onclick="toggleSound()">🔊 Sound</button>
+  <button onclick="restartGame()">🔄 Restart</button>
 </div>
 
 <div id="game"></div>
-<button onclick="startGame()">▶ Start</button>
 
+<!-- GAME OVER -->
 <div id="overlay">
-  <div id="overMsg">Game Over 😢</div>
-  <button onclick="startGame()">▶ Restart</button>
+  <h2 id="overMsg"></h2>
+  <button onclick="startGame()">▶ Дахин тоглох</button>
 </div>
 
-<audio id="sndStar" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
-<audio id="sndBomb" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
-<audio id="sndOver" src="https://actions.google.com/sounds/v1/cartoon/descending_whistle.ogg"></audio>
-
 <script>
-let score = 0, level = 1, life = 3;
-let difficulty = 1;
-let soundOn = true;
+/* ---------- DATA ---------- */
+let score=0, level=1, life=5;
+let kidMode=false;
 let gameTimer;
 
-const game = document.getElementById("game");
-const msg = document.getElementById("msg");
-const timerDisplay = document.createElement("div");
-timerDisplay.style.fontSize="16px";
-timerDisplay.style.marginTop="5px";
-document.getElementById("panel").appendChild(timerDisplay);
-const overlay = document.getElementById("overlay");
+let bestLevel=localStorage.getItem("bestLevel")||1;
 
-const messages = [
-  "Азхур мундаг! 💪",
-  "Азхур сайн байна! Мундаг юм! ⭐",
-  "Үргэлжлүүл! 🚀",
-  "Чи чадлаа! 🔥"
-];
-const backgrounds = [
-  "linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)",
-  "linear-gradient(120deg,#000428,#004e92)",
-  "linear-gradient(120deg,#134E5E,#71B280)",
-  "linear-gradient(120deg,#42275a,#734b6d)",
-  "linear-gradient(120deg,#232526,#414345)"
+const praise=[
+  "Азхур аа, чи үнэхээр мундаг хүү! 💪",
+  "Ямар сайн тоглож байна аа! ⭐",
+  "Чи чадлаа, Азхур! 🚀",
+  "Аав нь чамаар бахархаж байна 💙",
+  "Үнэхээр ухаантай юм аа! 🧠",
+  "Чиний хичээл зүтгэл гайхалтай! 🔥"
 ];
 
-function play(id){
-  if(soundOn){
-    const s = document.getElementById(id);
-    s.currentTime = 0;
-    s.play();
-  }
+const game=document.getElementById("game");
+const msg=document.getElementById("msg");
+const overlay=document.getElementById("overlay");
+
+/* ---------- FUNCTIONS ---------- */
+
+function toggleKid(){
+  kidMode=!kidMode;
+  alert(kidMode?"👶 Kid mode ON (аюул багатай)":"👶 Kid mode OFF");
 }
 
-function toggleSound(){ soundOn = !soundOn; }
-function setDifficulty(d){ difficulty = d; }
-
 function startGame(){
+  document.getElementById("startScreen").style.display="none";
   overlay.style.display="none";
-  score = 0; level = 1; life = 3;
-  updateUI();
+  score=0; level=1; life=5;
   nextLevel();
+  updateUI();
+}
+
+function restartGame(){
+  clearInterval(gameTimer);
+  startGame();
 }
 
 function updateUI(){
-  document.getElementById("score").innerText = score;
-  document.getElementById("level").innerText = level;
-  document.getElementById("life").innerText = life;
-  msg.innerText = messages[Math.floor(Math.random()*messages.length)];
+  score.innerText;
+  document.getElementById("score").innerText=score;
+  document.getElementById("level").innerText=level;
+  document.getElementById("life").innerText=life;
+
+  if(level>bestLevel){
+    bestLevel=level;
+    localStorage.setItem("bestLevel",bestLevel);
+  }
+  document.getElementById("bestLevel").innerText=bestLevel;
+
+  msg.innerText=praise[Math.floor(Math.random()*praise.length)];
 }
 
 function nextLevel(){
   clearInterval(gameTimer);
-  game.innerHTML = "";
-  document.body.style.background = backgrounds[level % backgrounds.length];
+  game.innerHTML="";
 
-  let stars = level * difficulty + 2;
-  let bombs = difficulty;
+  let stars=Math.floor(2+level*0.5);
+  let bombs=kidMode?1:2;
+  let timeLeft=kidMode?25:20;
 
-  for(let i=0;i<stars;i++) spawnStar();
-  for(let i=0;i<bombs;i++) spawnBomb();
+  for(let i=0;i<stars;i++)spawnStar();
+  for(let i=0;i<bombs;i++)spawnBomb();
+  if(level>=5 && !kidMode)spawnBoss();
 
-  let timeLeft = 20; // 20 секунд level
-  timerDisplay.innerText = timeLeft;
-  gameTimer = setInterval(()=>{
+  gameTimer=setInterval(()=>{
     timeLeft--;
-    timerDisplay.innerText = timeLeft;
-    if(timeLeft <= 0) {
-      life--;
-      updateUI();
-      if(life<=0) gameOver();
-      else nextLevel();
-    }
-  }, 1000);
+    if(timeLeft<=0)gameOver();
+  },1000);
 }
 
 function spawnStar(){
-  const s = document.createElement("div");
-  s.className = "star";
-  s.innerText = "⭐";
-  s.style.left = Math.random()*90 + "%";
-  s.style.top = Math.random()*80 + "%";
-  s.style.transition = `top ${2+Math.random()*2}s linear`;
-
-  setInterval(()=>{ s.style.top = Math.random()*80 + "%"; }, 2000);
-
-  s.onclick = () => {
-    play("sndStar");
-    score += 10;
+  const s=document.createElement("div");
+  s.className="star";
+  s.innerText="⭐";
+  s.style.left=Math.random()*90+"%";
+  s.style.top=Math.random()*80+"%";
+  s.onclick=()=>{
+    score+=10;
     s.remove();
-    msg.innerText = "Азхур сайн байна! Мундаг юм! ⭐";
-    checkClear();
+    if(!game.querySelector(".star")){
+      level++;
+      updateUI();
+      nextLevel();
+    }
   };
   game.appendChild(s);
 }
 
 function spawnBomb(){
-  const b = document.createElement("div");
-  b.className = "bomb";
-  b.innerText = "💣";
-  b.style.left = Math.random()*90 + "%";
-  b.style.top = Math.random()*80 + "%";
-
-  setInterval(()=>{ b.style.left = Math.random()*90 + "%"; }, 2500);
-
-  b.onclick = () => {
-    play("sndBomb");
-    if(navigator.vibrate) navigator.vibrate(200);
+  const b=document.createElement("div");
+  b.className="bomb";
+  b.innerText="💣";
+  b.style.left=Math.random()*90+"%";
+  b.style.top=Math.random()*80+"%";
+  b.onclick=()=>{
     life--;
     b.remove();
     updateUI();
-    if(life <= 0) gameOver();
+    if(life<=0)gameOver();
   };
   game.appendChild(b);
 }
 
-function checkClear(){
-  if([...game.children].every(e => e.className !== "star")){
-    level++;
-    updateUI();
-    nextLevel();
-  }
+function spawnBoss(){
+  let hp=2;
+  const boss=document.createElement("div");
+  boss.className="boss";
+  boss.innerText="👾";
+  boss.style.left="45%";
+  boss.style.top="40%";
+  boss.onclick=()=>{
+    hp--;
+    msg.innerText="Азхур аа, Аав нь илүү гоё хийж өгнөө 👊";
+    if(hp<=0){
+      boss.remove();
+      score+=50;
+    }
+  };
+  game.appendChild(boss);
 }
 
 function gameOver(){
   clearInterval(gameTimer);
-  play("sndOver");
   overlay.style.display="flex";
-  document.getElementById("overMsg").innerText = `Game Over 😢\nОноо: ${score}`;
+  document.getElementById("overMsg").innerHTML=
+    `Азхур аа, чи үнэхээр сайн тоглолоо 💙<br>
+     Level: ${level}<br>
+     Оноо: ${score}<br><br>
+     Аав нь чамаар бахархаж байна!`;
 }
 </script>
 
