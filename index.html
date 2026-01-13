@@ -1,61 +1,60 @@
 <!DOCTYPE html>
 <html lang="mn">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>AZHUR GAME</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
+  margin: 0;
   font-family: Arial, sans-serif;
   text-align: center;
-  background: #111;
-  color: #fff;
-  margin: 0;
+  color: white;
+  transition: background 1s;
 }
-h1 { margin-top: 10px; }
-button {
-  padding: 10px 16px;
-  margin: 5px;
-  font-size: 16px;
-}
-#game {
-  position: relative;
-  width: 100%;
-  height: 70vh;
-  background: #222;
-  overflow: hidden;
-}
-.star, .boss {
-  position: absolute;
-  cursor: pointer;
-}
-.star {
-  font-size: 32px;
-}
-.boss {
-  font-size: 60px;
-}
+h1 { margin: 10px; }
+#msg { font-size: 18px; margin: 5px; }
+
 #panel {
   display: flex;
   justify-content: space-around;
-  flex-wrap: wrap;
+  font-size: 16px;
 }
-.hidden { display: none; }
+
+#game {
+  position: relative;
+  height: 65vh;
+  overflow: hidden;
+}
+
+.star, .bomb {
+  position: absolute;
+  font-size: 32px;
+  cursor: pointer;
+}
+.bomb { font-size: 36px; }
+
+button {
+  padding: 8px 14px;
+  margin: 4px;
+  font-size: 14px;
+}
 </style>
 </head>
 
 <body>
+
 <h1>⭐ AZHUR GAME ⭐</h1>
+<div id="msg">Азхур мундаг!</div>
 
 <div id="panel">
   <div>Үе: <span id="level">1</span></div>
   <div>Оноо: <span id="score">0</span></div>
   <div>❤️ <span id="life">3</span></div>
-  <div>🏆 High: <span id="high">0</span></div>
 </div>
 
 <div>
-  Difficulty:
   <button onclick="setDifficulty(1)">Easy</button>
   <button onclick="setDifficulty(2)">Medium</button>
   <button onclick="setDifficulty(3)">Hard</button>
@@ -66,37 +65,45 @@ button {
 
 <button onclick="startGame()">▶ Start</button>
 
-<audio id="sndStar" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
-<audio id="sndBoss" src="https://actions.google.com/sounds/v1/cartoon/creature_roar.ogg"></audio>
+<audio id="sndStar" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+<audio id="sndBomb" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 <audio id="sndOver" src="https://actions.google.com/sounds/v1/cartoon/descending_whistle.ogg"></audio>
 
 <script>
-let score = 0;
-let level = 1;
-let life = 3;
+let score = 0, level = 1, life = 3;
 let difficulty = 1;
 let soundOn = true;
-let gameArea = document.getElementById("game");
-let highScore = localStorage.getItem("azhurHigh") || 0;
+const game = document.getElementById("game");
+const msg = document.getElementById("msg");
 
-document.getElementById("high").innerText = highScore;
+const messages = [
+ "Азхур мундаг! 💪",
+ "Сайн байна! 🔥",
+ "Үргэлжлүүл! 🚀",
+ "Чи чадлаа! ⭐"
+];
 
-function playSound(id){
-  if(soundOn) document.getElementById(id).play();
+const backgrounds = [
+ "linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)",
+ "linear-gradient(120deg,#000428,#004e92)",
+ "linear-gradient(120deg,#134E5E,#71B280)",
+ "linear-gradient(120deg,#42275a,#734b6d)",
+ "linear-gradient(120deg,#232526,#414345)"
+];
+
+function play(id){
+  if(soundOn){
+    const s = document.getElementById(id);
+    s.currentTime = 0;
+    s.play();
+  }
 }
 
-function toggleSound(){
-  soundOn = !soundOn;
-}
-
-function setDifficulty(d){
-  difficulty = d;
-}
+function toggleSound(){ soundOn = !soundOn; }
+function setDifficulty(d){ difficulty = d; }
 
 function startGame(){
-  score = 0;
-  level = 1;
-  life = 3;
+  score = 0; level = 1; life = 3;
   updateUI();
   nextLevel();
 }
@@ -105,65 +112,57 @@ function updateUI(){
   document.getElementById("score").innerText = score;
   document.getElementById("level").innerText = level;
   document.getElementById("life").innerText = life;
+  msg.innerText = messages[Math.floor(Math.random()*messages.length)];
 }
 
 function nextLevel(){
-  gameArea.innerHTML = "";
-  let count = level * difficulty;
+  game.innerHTML = "";
+  document.body.style.background =
+    backgrounds[level % backgrounds.length];
 
-  if(level % 5 === 0){
-    spawnBoss();
-    return;
-  }
+  let stars = level * difficulty + 2;
+  let bombs = difficulty;
 
-  for(let i=0;i<count;i++){
-    spawnStar();
-  }
+  for(let i=0;i<stars;i++) spawnStar();
+  for(let i=0;i<bombs;i++) spawnBomb();
 }
 
 function spawnStar(){
-  let star = document.createElement("div");
-  star.className = "star";
-  star.innerText = "⭐";
-  star.style.left = Math.random()*90 + "%";
-  star.style.top = Math.random()*90 + "%";
+  const s = document.createElement("div");
+  s.className = "star";
+  s.innerText = "⭐";
+  s.style.left = Math.random()*90 + "%";
+  s.style.top = Math.random()*80 + "%";
 
-  star.onclick = () => {
-    playSound("sndStar");
+  s.onclick = () => {
+    play("sndStar");
     score += 10;
-    star.remove();
+    s.remove();
     checkClear();
   };
-
-  gameArea.appendChild(star);
+  game.appendChild(s);
 }
 
-function spawnBoss(){
-  let boss = document.createElement("div");
-  boss.className = "boss";
-  boss.innerText = "👾";
-  boss.style.left = "40%";
-  boss.style.top = "40%";
-  let hp = 5 + difficulty;
+function spawnBomb(){
+  const b = document.createElement("div");
+  b.className = "bomb";
+  b.innerText = "💣";
+  b.style.left = Math.random()*90 + "%";
+  b.style.top = Math.random()*80 + "%";
 
-  playSound("sndBoss");
-
-  boss.onclick = () => {
-    hp--;
-    score += 20;
-    if(hp <= 0){
-      boss.remove();
-      level++;
-      updateUI();
-      nextLevel();
-    }
+  b.onclick = () => {
+    play("sndBomb");
+    if(navigator.vibrate) navigator.vibrate(200);
+    life--;
+    b.remove();
+    updateUI();
+    if(life <= 0) gameOver();
   };
-
-  gameArea.appendChild(boss);
+  game.appendChild(b);
 }
 
 function checkClear(){
-  if(gameArea.children.length === 0){
+  if([...game.children].every(e => e.className !== "star")){
     level++;
     updateUI();
     nextLevel();
@@ -171,12 +170,10 @@ function checkClear(){
 }
 
 function gameOver(){
-  playSound("sndOver");
-  if(score > highScore){
-    localStorage.setItem("azhurHigh", score);
-  }
-  alert("Game Over 😢\nScore: " + score);
+  play("sndOver");
+  alert("Game Over 😢\nОноо: " + score);
 }
 </script>
+
 </body>
 </html>
