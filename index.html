@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <title>Azhur Game 2.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #1d2671, #c33764);
+      color: #fff;
+      text-align: center;
+      overflow: hidden;
+    }
+    h1 { margin: 15px 0; }
+    #info { font-size: 16px; }
+    #message { margin: 8px; font-weight: bold; }
+
+    .item {
+      position: absolute;
+      font-size: 48px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #startBtn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #ffd166;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .shake {
+      animation: shake 0.3s;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+
+<h1>🔥 Azhur Mission 🔥</h1>
+<div id="info">
+  Level: <span id="level">1</span> |
+  Оноо: <span id="score">0</span> |
+  ⏱ <span id="time">30</span>
+</div>
+<div id="message">Start дарж эхлээрэй!</div>
+
+<button id="startBtn">START</button>
+
+<script>
+let score = 0;
+let level = 1;
+let timeLeft = 30;
+let gameInterval, timerInterval;
+
+const scoreEl = document.getElementById("score");
+const levelEl = document.getElementById("level");
+const timeEl = document.getElementById("time");
+const msgEl = document.getElementById("message");
+const startBtn = document.getElementById("startBtn");
+
+const skins = ["⭐", "💎", "🔥", "👾"];
+const messages = [
+  "Azhur мундаг!",
+  "Хурдан байна!",
+  "Boss ойртож байна!",
+  "Чи gamer шүү!"
+];
+
+function randomPos() {
+  return {
+    x: Math.random() * (window.innerWidth - 60),
+    y: Math.random() * (window.innerHeight - 140) + 80
+  };
+}
+
+function spawnItem() {
+  const item = document.createElement("div");
+  const isBomb = Math.random() < 0.25;
+  item.className = "item";
+  item.innerText = isBomb ? "💣" : skins[(level - 1) % skins.length];
+
+  const pos = randomPos();
+  item.style.left = pos.x + "px";
+  item.style.top = pos.y + "px";
+
+  item.onclick = () => {
+    if (isBomb) {
+      score = Math.max(0, score - 3);
+      document.body.classList.add("shake");
+      setTimeout(() => document.body.classList.remove("shake"), 300);
+    } else {
+      score++;
+      if (score % 6 === 0) {
+        level++;
+        levelEl.innerText = level;
+        msgEl.innerText = messages[Math.floor(Math.random()*messages.length)];
+      }
+    }
+    scoreEl.innerText = score;
+    item.remove();
+  };
+
+  document.body.appendChild(item);
+  setTimeout(() => item.remove(), 2000);
+}
+
+function startGame() {
+  score = 0; level = 1; timeLeft = 30;
+  scoreEl.innerText = score;
+  levelEl.innerText = level;
+  timeEl.innerText = timeLeft;
+  msgEl.innerText = "Тоглоом эхэллээ!";
+  startBtn.style.display = "none";
+
+  gameInterval = setInterval(spawnItem, 800);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timeEl.innerText = timeLeft;
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function endGame() {
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  msgEl.innerText = `GAME OVER 😎 Оноо: ${score}`;
+  startBtn.style.display = "inline-block";
+}
+
+startBtn.onclick = startGame;
+</script>
+
+</body>
+</html>
