@@ -5,20 +5,23 @@
 <title>⭐ AZHUR GAME ⭐</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- GOOGLE FONTS -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2&family=Fredoka&family=Comic+Neue&family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
 body{
   margin:0;
-  font-family:Arial,sans-serif;
   text-align:center;
   color:white;
   background:linear-gradient(120deg,#0f2027,#203a43,#2c5364);
+  transition:.5s;
 }
-h1{margin-top:20px}
+h1{margin:10px}
 button{
-  padding:10px 18px;
+  padding:10px 16px;
   margin:6px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   font-size:16px;
   cursor:pointer;
 }
@@ -26,7 +29,7 @@ button{
   display:flex;
   justify-content:space-around;
   flex-wrap:wrap;
-  margin:10px;
+  margin:8px;
 }
 #game{
   height:65vh;
@@ -35,17 +38,23 @@ button{
 }
 .star,.bomb,.boss{
   position:absolute;
-  cursor:pointer;
   user-select:none;
+  cursor:pointer;
+  animation: float 4s linear infinite;
 }
 .star{font-size:32px}
 .bomb{font-size:34px}
 .boss{font-size:48px}
 
+@keyframes float{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-30px)}
+  100%{transform:translateY(0)}
+}
+
 #startScreen,#overlay{
   position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
+  inset:0;
   background:rgba(0,0,0,.88);
   display:flex;
   flex-direction:column;
@@ -53,19 +62,17 @@ button{
   align-items:center;
   z-index:10;
 }
-
 #overlay{display:none}
 </style>
 </head>
 
 <body>
 
-<!-- START SCREEN -->
 <div id="startScreen">
   <h1>⭐ AZHUR GAME ⭐</h1>
-  <p>Азхур аа, аав нь чамд зориулж хийсэн тоглоом шүү 💙</p>
-  <button onclick="startGame()">▶ Тоглох</button>
-  <button onclick="toggleKid()">👶 Kid Mode</button>
+  <p>Азхур аа, аав нь чамд зориулж 💙</p>
+  <button onclick="startNormal()">▶ Normal</button>
+  <button onclick="startKid()">👶 Kid Mode</button>
 </div>
 
 <h1>⭐ AZHUR GAME ⭐</h1>
@@ -75,107 +82,114 @@ button{
   <div>Үе: <span id="level">1</span></div>
   <div>Оноо: <span id="score">0</span></div>
   <div>❤️ <span id="life">5</span></div>
-  <div>🏆 Best: <span id="bestLevel">1</span></div>
+  <div>⏱️ <span id="time">20</span></div>
+  <div>
+    🔊 <button onclick="toggleSound()">ON/OFF</button>
+  </div>
 </div>
 
-<div>
-  <button onclick="restartGame()">🔄 Restart</button>
-</div>
-
+<button onclick="pauseGame()">⏸️ Pause</button>
 <div id="game"></div>
 
-<!-- GAME OVER -->
 <div id="overlay">
   <h2 id="overMsg"></h2>
-  <button onclick="startGame()">▶ Дахин тоглох</button>
+  <button onclick="startGame()">▶ Дахин</button>
 </div>
 
-<script>
-/* ---------- DATA ---------- */
-let score=0, level=1, life=5;
-let kidMode=false;
-let gameTimer;
+<!-- SOUNDS -->
+<audio id="starSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
+<audio id="bombSound" src="https://assets.mixkit.co/sfx/preview/mixkit-explosion-hit-1704.mp3"></audio>
 
-let bestLevel=localStorage.getItem("bestLevel")||1;
+<script>
+let score=0, level=1, life=5, timeLeft=20;
+let kidMode=false, soundOn=true, paused=false;
+let timer;
+
+const fonts=[
+  "Baloo 2","Fredoka","Comic Neue","Press Start 2P"
+];
 
 const praise=[
-  "Азхур аа, чи үнэхээр мундаг хүү! 💪",
-  "Ямар сайн тоглож байна аа! ⭐",
-  "Чи чадлаа, Азхур! 🚀",
-  "Аав нь чамаар бахархаж байна 💙",
-  "Үнэхээр ухаантай юм аа! 🧠",
-  "Чиний хичээл зүтгэл гайхалтай! 🔥"
+ "Азхур мундаг! 💪","Чи чадлаа! ⭐","Аав нь бахархаж байна 💙",
+ "Ямар ухаантай вэ! 🧠","Гайхалтай! 🔥"
 ];
 
 const game=document.getElementById("game");
 const msg=document.getElementById("msg");
-const overlay=document.getElementById("overlay");
 
-/* ---------- FUNCTIONS ---------- */
+function toggleSound(){
+  soundOn=!soundOn;
+}
 
-function toggleKid(){
-  kidMode=!kidMode;
-  alert(kidMode?"👶 Kid mode ON (аюул багатай)":"👶 Kid mode OFF");
+function startKid(){
+  kidMode=true;
+  startGame();
+}
+function startNormal(){
+  kidMode=false;
+  startGame();
 }
 
 function startGame(){
   document.getElementById("startScreen").style.display="none";
-  overlay.style.display="none";
-  score=0; level=1; life=5;
+  document.getElementById("overlay").style.display="none";
+  score=0; level=1;
+  life=kidMode?5:3;
   nextLevel();
-  updateUI();
 }
 
-function restartGame(){
-  clearInterval(gameTimer);
-  startGame();
-}
-
-function updateUI(){
-  score.innerText;
-  document.getElementById("score").innerText=score;
-  document.getElementById("level").innerText=level;
-  document.getElementById("life").innerText=life;
-
-  if(level>bestLevel){
-    bestLevel=level;
-    localStorage.setItem("bestLevel",bestLevel);
-  }
-  document.getElementById("bestLevel").innerText=bestLevel;
-
-  msg.innerText=praise[Math.floor(Math.random()*praise.length)];
+function pauseGame(){
+  paused=!paused;
 }
 
 function nextLevel(){
-  clearInterval(gameTimer);
+  clearInterval(timer);
   game.innerHTML="";
+  timeLeft=kidMode?25:20;
 
-  let stars=Math.floor(2+level*0.5);
+  document.body.style.fontFamily=fonts[level%fonts.length];
+  msg.innerText=praise[Math.floor(Math.random()*praise.length)];
+
+  let stars=2+level;
   let bombs=kidMode?1:2;
-  let timeLeft=kidMode?25:20;
 
   for(let i=0;i<stars;i++)spawnStar();
   for(let i=0;i<bombs;i++)spawnBomb();
   if(level>=5 && !kidMode)spawnBoss();
 
-  gameTimer=setInterval(()=>{
+  timer=setInterval(()=>{
+    if(paused) return;
     timeLeft--;
+    updateUI();
     if(timeLeft<=0)gameOver();
   },1000);
+
+  updateUI();
 }
+
+function updateUI(){
+  scoreEl.innerText=score;
+  levelEl.innerText=level;
+  lifeEl.innerText=life;
+  time.innerText=timeLeft;
+}
+
+const scoreEl=document.getElementById("score");
+const levelEl=document.getElementById("level");
+const lifeEl=document.getElementById("life");
+const time=document.getElementById("time");
 
 function spawnStar(){
   const s=document.createElement("div");
   s.className="star";
   s.innerText="⭐";
-  s.style.left=Math.random()*90+"%";
-  s.style.top=Math.random()*80+"%";
+  moveRandom(s);
   s.onclick=()=>{
     score+=10;
+    if(soundOn)starSound.play();
     s.remove();
     if(!game.querySelector(".star")){
       level++;
-      updateUI();
       nextLevel();
     }
   };
@@ -186,10 +200,10 @@ function spawnBomb(){
   const b=document.createElement("div");
   b.className="bomb";
   b.innerText="💣";
-  b.style.left=Math.random()*90+"%";
-  b.style.top=Math.random()*80+"%";
+  moveRandom(b);
   b.onclick=()=>{
-    life--;
+    if(!kidMode)life--;
+    if(soundOn)bombSound.play();
     b.remove();
     updateUI();
     if(life<=0)gameOver();
@@ -198,7 +212,7 @@ function spawnBomb(){
 }
 
 function spawnBoss(){
-  let hp=2;
+  let hp=3;
   const boss=document.createElement("div");
   boss.className="boss";
   boss.innerText="👾";
@@ -206,7 +220,6 @@ function spawnBoss(){
   boss.style.top="40%";
   boss.onclick=()=>{
     hp--;
-    msg.innerText="Азхур аа, Аав нь илүү гоё хийж өгнөө 👊";
     if(hp<=0){
       boss.remove();
       score+=50;
@@ -215,14 +228,20 @@ function spawnBoss(){
   game.appendChild(boss);
 }
 
+function moveRandom(el){
+  el.style.left=Math.random()*90+"%";
+  el.style.top=Math.random()*80+"%";
+  setInterval(()=>{
+    el.style.left=Math.random()*90+"%";
+    el.style.top=Math.random()*80+"%";
+  },2000);
+}
+
 function gameOver(){
-  clearInterval(gameTimer);
-  overlay.style.display="flex";
+  clearInterval(timer);
+  document.getElementById("overlay").style.display="flex";
   document.getElementById("overMsg").innerHTML=
-    `Азхур аа, чи үнэхээр сайн тоглолоо 💙<br>
-     Level: ${level}<br>
-     Оноо: ${score}<br><br>
-     Аав нь чамаар бахархаж байна!`;
+    `Азхур аа 💙<br>Level: ${level}<br>Оноо: ${score}`;
 }
 </script>
 
