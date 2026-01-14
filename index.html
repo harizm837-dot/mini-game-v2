@@ -42,10 +42,10 @@ button{
   cursor:pointer;
   user-select:none;
 }
-.star{font-size:32px; transition: all 0.3s;}
+.star{font-size:32px; transition: transform 0.3s;}
 .bomb{font-size:34px;}
 .boss{font-size:48px; transition: left 0.5s, top 0.5s;}
-#startScreen,#overlay{
+#startScreen,#overlay,#settingsModal{
   position:fixed;
   top:0;left:0;
   width:100%;height:100%;
@@ -56,7 +56,7 @@ button{
   align-items:center;
   z-index:10;
 }
-#overlay{display:none}
+#overlay,#settingsModal{display:none}
 #modeButtons button{width:180px;}
 #pauseBtn{background:#444;}
 #audioBtn{background:#444;}
@@ -74,6 +74,21 @@ button{
   background:#ffd700;
   transition: width 1s linear;
 }
+/* Settings modal */
+#settingsModal{
+  background:rgba(0,0,0,0.95);
+  padding:20px;
+  border-radius:12px;
+  color:#fff;
+}
+#settingsModal label{
+  display:block;
+  margin:6px 0 2px 0;
+}
+#settingsModal input, #settingsModal select{
+  margin-bottom:10px;
+  width:90%;
+}
 </style>
 </head>
 <body>
@@ -88,6 +103,7 @@ button{
     <button onclick="selectMode('Ari')">⭐ Ариунхур Mode ⭐</button>
   </div>
   <button id="audioBtn" onclick="toggleAudio()">🔊 Дуу ON/OFF</button>
+  <button onclick="openSettings()">⚙️ Settings</button>
 </div>
 
 <h1>⭐ AZHUR GAME ⭐</h1>
@@ -111,13 +127,34 @@ button{
   <button onclick="startGame()">▶ Дахин тоглох</button>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div id="settingsModal">
+  <h2>🎮 Settings</h2>
+  <label>Одын хурд (px per frame)</label>
+  <input type="number" id="starSpeed" value="1" min="0.1" step="0.1">
+  <label>Бомбо тоо</label>
+  <input type="number" id="bombCount" value="2" min="1" max="5">
+  <label>Boss амьдрал</label>
+  <input type="number" id="bossHP" value="3" min="1" max="10">
+  <label>Font сонгох</label>
+  <select id="fontSelect">
+    <option>Arial</option>
+    <option>Courier New</option>
+    <option>Verdana</option>
+    <option>Tahoma</option>
+  </select>
+  <label>Effect өнгө</label>
+  <input type="color" id="effectColor" value="#ffd700">
+  <button onclick="applySettings()">💾 Apply</button>
+  <button onclick="closeSettings()">❌ Close</button>
+</div>
+
 <script>
 // ---------- DATA ----------
 let score=0, level=1, life=3, mode='Az', gameTimer, timeLeft=20, paused=false;
 let bestLevel=localStorage.getItem("bestLevel")||1;
-let audioOn=true;
-let bossInterval;
-let combo=0;
+let audioOn=true, bossInterval, combo=0;
+let starSpeed=1, bombCount=2, bossHPValue=3, effectColor="#ffd700";
 
 const game=document.getElementById("game");
 const msg=document.getElementById("msg");
@@ -141,7 +178,7 @@ const praise = {
   ],
   'Ari':[
     "Ариунхур охин минь, үнэхээр мундаг! 💖",
-    "Ариунхур охин минь, чи чадлаа! 🌟"
+    "Ариунхур охин минь, Аавын хайртай гүнж шүү💞🌟"
   ]
 };
 
@@ -177,6 +214,17 @@ function toggleAudio(){
   document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF";
 }
 
+function openSettings(){document.getElementById("settingsModal").style.display="flex";}
+function closeSettings(){document.getElementById("settingsModal").style.display="none";}
+function applySettings(){
+  starSpeed=parseFloat(document.getElementById("starSpeed").value);
+  bombCount=parseInt(document.getElementById("bombCount").value);
+  bossHPValue=parseInt(document.getElementById("bossHP").value);
+  effectColor=document.getElementById("effectColor").value;
+  document.body.style.fontFamily=document.getElementById("fontSelect").value;
+  closeSettings();
+}
+
 function startGame(){
   document.getElementById("startScreen").style.display="none";
   overlay.style.display="none";
@@ -188,44 +236,27 @@ function startGame(){
   updateUI();
 }
 
-function restartGame(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
-  startGame();
-}
-
-function togglePause(){
-  paused=!paused;
-  document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause";
-}
-
+function restartGame(){clearInterval(gameTimer); clearInterval(bossInterval); startGame();}
+function togglePause(){paused=!paused; document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause";}
 function updateUI(){
   document.getElementById("score").innerText=score;
   document.getElementById("level").innerText=level;
   document.getElementById("life").innerText=life;
-  if(level>bestLevel){ 
-    bestLevel=level; 
-    localStorage.setItem("bestLevel",bestLevel); 
-  }
+  if(level>bestLevel){ bestLevel=level; localStorage.setItem("bestLevel",bestLevel);}
   document.getElementById("bestLevel").innerText=bestLevel;
   msg.innerText=praise[mode][Math.floor(Math.random()*praise[mode].length)];
 }
 
 function nextLevel(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
-  game.innerHTML="";
-  timeLeft=20;
-  combo=0;
-
-  // Font & background change per level
+  clearInterval(gameTimer); clearInterval(bossInterval);
+  game.innerHTML=""; timeLeft=20; combo=0;
   fontIndex = (fontIndex+1) % fonts.length;
   bgIndex = (bgIndex+1) % backgrounds.length;
   document.body.style.fontFamily = fonts[fontIndex];
   document.body.style.background = backgrounds[bgIndex];
 
   let stars=Math.floor(2+level*0.5);
-  let bombs=(mode==='Iv'?2:(mode==='Ari'?1:2));
+  let bombs=bombCount;
 
   for(let i=0;i<stars;i++) spawnStar();
   for(let i=0;i<bombs;i++) spawnBomb();
@@ -241,40 +272,38 @@ function nextLevel(){
   },1000);
 }
 
-function updateTimerBar(){
-  const fill=document.getElementById("timerFill");
-  fill.style.width=(timeLeft/20*100)+"%";
-}
+function updateTimerBar(){document.getElementById("timerFill").style.width=(timeLeft/20*100)+"%";}
 
 function spawnStar(){
   const s=document.createElement("div");
   s.className="star"; s.innerText="⭐";
   s.style.left=Math.random()*90+"%";
   s.style.top=Math.random()*80+"%";
-  s.onclick=()=>{
-    combo++;
-    score+=10+combo*2;
-    if(audioOn) starSound.play();
+  let dx=(Math.random()*2-1)*starSpeed, dy=(Math.random()*2-1)*starSpeed;
 
-    const f=document.createElement("div");
-    f.innerText="+"+(10+combo*2); 
-    f.style.position="absolute";
-    f.style.left=s.offsetLeft+"px";
-    f.style.top=s.offsetTop+"px";
-    f.style.color="yellow";
-    f.style.fontWeight="bold";
-    f.style.transition="all 0.5s ease-out";
-    f.style.opacity="1";
+  function moveStar(){
+    if(!paused){
+      let l=parseFloat(s.style.left), t=parseFloat(s.style.top);
+      if(l+dx<0 || l+dx>90) dx=-dx;
+      if(t+dy<0 || t+dy>80) dy=-dy;
+      s.style.left=(l+dx)+"%";
+      s.style.top=(t+dy)+"%";
+    }
+    requestAnimationFrame(moveStar);
+  }
+  moveStar();
+
+  s.onclick=()=>{
+    combo++; score+=10+combo*2;
+    if(audioOn) starSound.play();
+    const f=document.createElement("div"); f.innerText="+"+(10+combo*2);
+    f.style.position="absolute"; f.style.left=s.offsetLeft+"px"; f.style.top=s.offsetTop+"px";
+    f.style.color=effectColor; f.style.fontWeight="bold"; f.style.transition="all 0.5s ease-out"; f.style.opacity="1";
     game.appendChild(f);
     setTimeout(()=>{f.style.top=(s.offsetTop-30)+"px"; f.style.opacity="0";},10);
     setTimeout(()=>f.remove(),600);
-
     s.remove();
-    if(!game.querySelector(".star") && !document.querySelector(".boss")){
-      level++;
-      nextLevel();
-      updateUI();
-    }
+    if(!game.querySelector(".star") && !document.querySelector(".boss")){ level++; nextLevel(); updateUI();}
   };
   game.appendChild(s);
 }
@@ -285,26 +314,20 @@ function spawnBomb(){
   b.style.left=Math.random()*90+"%";
   b.style.top=Math.random()*80+"%";
   b.onclick=()=>{
-    life--;
-    combo=0;
+    life--; combo=0;
     if(audioOn) bombSound.play();
     if(navigator.vibrate) navigator.vibrate(200);
     game.style.transform="translate(5px,0)";
     setTimeout(()=>{game.style.transform="translate(0,0)";},100);
-    b.remove();
-    updateUI();
-    if(life<=0) gameOver();
+    b.remove(); updateUI(); if(life<=0) gameOver();
   };
   game.appendChild(b);
 }
 
 function spawnBoss(){
-  let hp=3;
-  const boss=document.createElement("div");
-  boss.className="boss"; boss.innerText="👾";
-  boss.style.left="45%";
-  boss.style.top="40%";
-  game.appendChild(boss);
+  let hp=bossHPValue;
+  const boss=document.createElement("div"); boss.className="boss"; boss.innerText="👾";
+  boss.style.left="45%"; boss.style.top="40%"; game.appendChild(boss);
 
   bossInterval=setInterval(()=>{
     if(!paused){
@@ -314,29 +337,17 @@ function spawnBoss(){
   },800);
 
   boss.onclick=()=>{
-    hp--;
-    combo++;
-    score+=10+combo*2;
-    msg.innerText=`${modes[mode].name}, мундаг байна шүү👊`;
+    hp--; combo++; score+=10+combo*2;
+    msg.innerText=`${modes[mode].name}, мундаг байлаа хайртай шүү🫂 👊`;
     if(audioOn) bossSound.play();
-
-    const f=document.createElement("div");
-    f.innerText="+"+(10+combo*2); 
-    f.style.position="absolute";
-    f.style.left=boss.offsetLeft+"px";
-    f.style.top=boss.offsetTop+"px";
-    f.style.color="cyan";
-    f.style.fontWeight="bold";
-    f.style.transition="all 0.5s ease-out";
-    f.style.opacity="1";
+    const f=document.createElement("div"); f.innerText="+"+(10+combo*2);
+    f.style.position="absolute"; f.style.left=boss.offsetLeft+"px"; f.style.top=boss.offsetTop+"px";
+    f.style.color=effectColor; f.style.fontWeight="bold"; f.style.transition="all 0.5s ease-out"; f.style.opacity="1";
     game.appendChild(f);
     setTimeout(()=>{f.style.top=(boss.offsetTop-50)+"px"; f.style.opacity="0";},10);
     setTimeout(()=>f.remove(),600);
-
     if(hp<=0){
-      boss.remove();
-      combo=0;
-      // Boss confetti effect
+      boss.remove(); combo=0;
       for(let i=0;i<20;i++){
         const c=document.createElement("div");
         c.innerText="✨";
@@ -353,14 +364,13 @@ function spawnBoss(){
 }
 
 function gameOver(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
+  clearInterval(gameTimer); clearInterval(bossInterval);
   overlay.style.display="flex";
   document.getElementById("overMsg").innerHTML=
     `${modes[mode].name}, чи үнэхээр сайн тоглолоо 💙<br>
      Level: ${level}<br>
      Оноо: ${score}<br><br>
-     Аав нь чамаар бахархаж байна🫂💞`;
+     Аав нь чамаар бахархаж байна!`;
 }
 </script>
 </body>
