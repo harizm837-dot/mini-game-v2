@@ -85,7 +85,6 @@ button{
 </head>
 <body>
 
-<!-- START SCREEN -->
 <div id="startScreen">
   <h1>⭐ AZHUR GAME ⭐</h1>
   <p>Хүүхдүүдээ, аав нь илүү сайнынг хийж өгнө өө😎💙</p>
@@ -101,7 +100,7 @@ button{
     💣-г дарвал амь хасагдана<br>
     👾 Boss-г дарж алвал нэмэлт оноо авна<br>
     Level ахихад од болон boss нэмэгдэнэ<br>
-    20 секундийн дотор бүх одыг дарвал level ахина
+    Хугацаа дуусахаас өмнө бүх одыг дарвал level ахина
   </div>
 </div>
 
@@ -120,20 +119,17 @@ button{
 </div>
 <div id="game"></div>
 
-<!-- GAME OVER -->
 <div id="overlay">
   <h2 id="overMsg"></h2>
   <button onclick="startGame()">▶ Дахин тоглох</button>
 </div>
 
 <script>
-// ---------- DATA ----------
 let score=0, level=1, life=3, mode='Az', gameTimer, timeLeft=20, paused=false;
 let bestLevel=localStorage.getItem("bestLevel")||1;
 let audioOn=true;
 let bossInterval;
 let combo=0;
-
 const game=document.getElementById("game");
 const msg=document.getElementById("msg");
 const overlay=document.getElementById("overlay");
@@ -143,31 +139,18 @@ const modes = {
   'Iv':{name:'Ивээлт хүү минь',life:4,boss:true},
   'Ari':{name:'Ариунхур охин минь',life:5,boss:true}
 };
-
 const praise = {
-  'Az':[
-    "Азхур аа, чи үнэхээр мундаг хүү! 💪",
-    "Ямар сайн тоглож байна аа! ⭐",
-    "Чи чадлаа, Азхур! 🚀"
-  ],
-  'Iv':[
-    "Ивээлт хүү минь, чи гайхалтай! 💪",
-    "Ивээлт хүү минь, Аавын Superman 💞⭐"
-  ],
-  'Ari':[
-    "Ариунхур охин минь, үнэхээр мундаг! 💖",
-    "Ариунхур охин минь, Аавын гүнж шүү💞😘🌟"
-  ]
+  'Az':["Азхур аа, чи үнэхээр мундаг хүү! 💪","Ямар сайн тоглож байна аа! ⭐","Чи чадлаа, Азхур! 🚀"],
+  'Iv':["Ивээлт хүү минь, чи гайхалтай! 💪","Ивээлт хүү минь, Аавын Superman 💞⭐"],
+  'Ari':["Ариунхур охин минь, үнэхээр мундаг! 💖","Ариунхур охин минь, Аавын хайртай гүнж шүү😘💞🌟"]
 };
 
-// Audio
-const starSound = new Audio('https://freesound.org/data/previews/331/331912_3248244-lq.mp3');
-const bombSound = new Audio('https://freesound.org/data/previews/276/276031_4486188-lq.mp3');
-const bossSound = new Audio('https://freesound.org/data/previews/331/331914_3248244-lq.mp3');
+const starSound=new Audio('https://freesound.org/data/previews/331/331912_3248244-lq.mp3');
+const bombSound=new Audio('https://freesound.org/data/previews/276/276031_4486188-lq.mp3');
+const bossSound=new Audio('https://freesound.org/data/previews/331/331914_3248244-lq.mp3');
 
-// Fonts + Background gradients
-const fonts = ["Arial","Courier New","Verdana","Tahoma"];
-const backgrounds = [
+const fonts=["Arial","Courier New","Verdana","Tahoma"];
+const backgrounds=[
   "linear-gradient(120deg,#0f2027,#203a43,#2c5364)",
   "linear-gradient(120deg,#11998e,#38ef7d)",
   "linear-gradient(120deg,#fc4a1a,#f7b733)",
@@ -176,134 +159,94 @@ const backgrounds = [
 ];
 let fontIndex=0, bgIndex=0;
 
-// ---------- FUNCTIONS ----------
 function selectMode(m){
   mode=m;
   life=modes[m].life;
   document.getElementById("life").innerText=life;
   fontIndex=0; bgIndex=0;
-  document.body.style.fontFamily = fonts[fontIndex];
-  document.body.style.background = backgrounds[bgIndex];
+  document.body.style.fontFamily=fonts[fontIndex];
+  document.body.style.background=backgrounds[bgIndex];
   startGame();
 }
 
-function toggleAudio(){
-  audioOn=!audioOn;
-  document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF";
-}
-
+function toggleAudio(){ audioOn=!audioOn; document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF"; }
 function startGame(){
   document.getElementById("startScreen").style.display="none";
   overlay.style.display="none";
   score=0; level=1; life=modes[mode].life; paused=false; combo=0;
   fontIndex=0; bgIndex=0;
-  document.body.style.fontFamily = fonts[fontIndex];
-  document.body.style.background = backgrounds[bgIndex];
+  document.body.style.fontFamily=fonts[fontIndex];
+  document.body.style.background=backgrounds[bgIndex];
   nextLevel();
   updateUI();
 }
-
-function restartGame(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
-  startGame();
-}
-
-function togglePause(){
-  paused=!paused;
-  document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause";
-}
-
+function restartGame(){ clearInterval(gameTimer); clearInterval(bossInterval); startGame(); }
+function togglePause(){ paused=!paused; document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause"; }
 function updateUI(){
   document.getElementById("score").innerText=score;
   document.getElementById("level").innerText=level;
   document.getElementById("life").innerText=life;
-  if(level>bestLevel){ 
-    bestLevel=level; 
-    localStorage.setItem("bestLevel",bestLevel); 
-  }
+  if(level>bestLevel){ bestLevel=level; localStorage.setItem("bestLevel",bestLevel); }
   document.getElementById("bestLevel").innerText=bestLevel;
   msg.innerText=praise[mode][Math.floor(Math.random()*praise[mode].length)];
 }
 
 function nextLevel(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
+  clearInterval(gameTimer); clearInterval(bossInterval);
   game.innerHTML="";
-  timeLeft=20;
-  combo=0;
-  fontIndex = (fontIndex+1) % fonts.length;
-  bgIndex = (bgIndex+1) % backgrounds.length;
-  document.body.style.fontFamily = fonts[fontIndex];
-  document.body.style.background = backgrounds[bgIndex];
+  timeLeft=20; combo=0;
+  fontIndex=(fontIndex+1)%fonts.length;
+  bgIndex=(bgIndex+1)%backgrounds.length;
+  document.body.style.fontFamily=fonts[fontIndex];
+  document.body.style.background=backgrounds[bgIndex];
 
-  let stars=Math.floor(1+level*0.5);
-  let bombs=(mode==='Iv'?2:(mode==='Ari'?1:2));
+  let starsCount=Math.floor(1+level*0.5);
+  let bombsCount=(mode==='Iv'?2:(mode==='Ari'?1:2));
+  let bossCount=(level>=3 && modes[mode].boss?1:0);
 
-  for(let i=0;i<stars;i++) spawnStar();
-  for(let i=0;i<bombs;i++) spawnBomb();
-  if(modes[mode].boss && level>=3) spawnBoss();
+  for(let i=0;i<starsCount;i++) spawnStar();
+  for(let i=0;i<bombsCount;i++) spawnBomb();
+  for(let i=0;i<bossCount;i++) spawnBoss();
 
   updateTimerBar();
   gameTimer=setInterval(()=>{
-    if(!paused){
-      timeLeft--;
-      updateTimerBar();
-      if(timeLeft<=0) gameOver();
-    }
+    if(!paused){ timeLeft--; updateTimerBar(); if(timeLeft<=0) gameOver(); }
   },1000);
 }
 
-// ---------- SPAWN FUNCTIONS ----------
+// ---------- SPAWN ----------
 function spawnStar(){
-  const s=document.createElement("div");
-  s.className="star"; s.innerText="⭐";
-  s.style.left=Math.random()*80+"%";
-  s.style.top=Math.random()*70+"%";
-  let dx=(Math.random()*2-1)*0.3;
-  let dy=(Math.random()*2-1)*0.3;
+  const s=document.createElement("div"); s.className="star"; s.innerText="⭐";
+  s.style.left=Math.random()*80+"%"; s.style.top=Math.random()*70+"%";
+  let dx=(Math.random()*2-1)*0.2; let dy=(Math.random()*2-1)*0.2;
   s.animInterval=setInterval(()=>{
     if(!paused){
-      let left=parseFloat(s.style.left);
-      let top=parseFloat(s.style.top);
+      let left=parseFloat(s.style.left), top=parseFloat(s.style.top);
       left+=dx; top+=dy;
-      if(left<0||left>90) dx*=-1;
-      if(top<0||top>70) dy*=-1;
-      s.style.left=left+"%";
-      s.style.top=top+"%";
+      if(left<0||left>80) dx*=-1; if(top<0||top>70) dy*=-1;
+      s.style.left=left+"%"; s.style.top=top+"%";
     }
   },30);
   s.onclick=()=>{
-    clearInterval(s.animInterval);
-    combo++;
-    score+=10+combo*2;
+    clearInterval(s.animInterval); combo++; score+=10+combo*2;
     if(audioOn) starSound.play();
-    createParticle(s.offsetLeft, s.offsetTop, 'yellow', 5);
+    createParticle(s.offsetLeft,s.offsetTop,'yellow',5);
     s.remove();
-    if(!game.querySelector(".star") && !document.querySelector(".boss")){
-      level++;
-      nextLevel();
-      updateUI();
-    }
+    checkLevelComplete();
   };
   game.appendChild(s);
 }
 
 function spawnBomb(){
-  const b=document.createElement("div");
-  b.className="bomb"; b.innerText="💣";
-  b.style.left=Math.random()*80+"%";
-  b.style.top=Math.random()*70+"%";
+  const b=document.createElement("div"); b.className="bomb"; b.innerText="💣";
+  b.style.left=Math.random()*80+"%"; b.style.top=Math.random()*70+"%";
   b.onclick=()=>{
-    life--;
-    combo=0;
-    if(audioOn) bombSound.play();
-    createParticle(b.offsetLeft, b.offsetTop, 'red', 8);
+    life--; combo=0; if(audioOn) bombSound.play();
+    createParticle(b.offsetLeft,b.offsetTop,'red',8);
     if(navigator.vibrate) navigator.vibrate(200);
     game.style.transform="translate(5px,0)";
     setTimeout(()=>{game.style.transform="translate(0,0)";},100);
-    b.remove();
-    updateUI();
+    b.remove(); updateUI();
     if(life<=0) gameOver();
   };
   game.appendChild(b);
@@ -311,65 +254,51 @@ function spawnBomb(){
 
 function spawnBoss(){
   let hp=3;
-  const boss=document.createElement("div");
-  boss.className="boss"; boss.innerText="👾";
-  boss.style.left="45%";
-  boss.style.top="40%";
+  const boss=document.createElement("div"); boss.className="boss"; boss.innerText="👾";
+  boss.style.left="45%"; boss.style.top="40%";
   game.appendChild(boss);
   bossInterval=setInterval(()=>{
-    if(!paused){
-      boss.style.left=Math.random()*80+"%";
-      boss.style.top=Math.random()*70+"%";
-    }
+    if(!paused){ boss.style.left=Math.random()*80+"%"; boss.style.top=Math.random()*70+"%"; }
   },800);
   boss.onclick=()=>{
-    hp--;
-    combo++;
-    score+=10+combo*2;
+    hp--; combo++; score+=10+combo*2;
     msg.innerText=`${modes[mode].name}, мундаг байлаа хайртай шүү🫂 👊`;
     if(audioOn) bossSound.play();
-    createParticle(boss.offsetLeft, boss.offsetTop, 'cyan', 12);
-    if(hp<=0){
-      boss.remove();
-      combo=0;
-      for(let i=0;i<20;i++){
-        const colors=['#ffd700','#ff69b4','#00ffff'];
-        createParticle(boss.offsetLeft + Math.random()*50-25, boss.offsetTop + Math.random()*50-25, colors[Math.floor(Math.random()*3)], 10);
-      }
+    createParticle(boss.offsetLeft,boss.offsetTop,'cyan',12);
+    if(hp<=0){ boss.remove(); combo=0;
+      for(let i=0;i<20;i++){ createParticle(boss.offsetLeft+Math.random()*50-25,boss.offsetTop+Math.random()*50-25,['#ffd700','#ff69b4','#00ffff'][Math.floor(Math.random()*3)],10); }
+      checkLevelComplete();
     }
   };
 }
 
-// ---------- PARTICLE EFFECT ----------
+// ---------- PARTICLE ----------
 function createParticle(x,y,color,count){
   for(let i=0;i<count;i++){
-    const p=document.createElement("div");
-    p.className="particle";
-    p.innerText="✨";
-    p.style.left=x+"px";
-    p.style.top=y+"px";
-    p.style.color=color;
+    const p=document.createElement("div"); p.className="particle"; p.innerText="✨";
+    p.style.left=x+"px"; p.style.top=y+"px"; p.style.color=color;
     game.appendChild(p);
-    const dx=(Math.random()*2-1)*30;
-    const dy=(Math.random()*-1)*30-10;
-    setTimeout(()=>{
-      p.style.transform=`translate(${dx}px,${dy}px) scale(0)`;
-      p.style.opacity="0";
-    },10);
+    const dx=(Math.random()*2-1)*30; const dy=(Math.random()*-1)*30-10;
+    setTimeout(()=>{ p.style.transform=`translate(${dx}px,${dy}px) scale(0)`; p.style.opacity="0"; },10);
     setTimeout(()=>p.remove(),700);
+  }
+}
+
+// ---------- CHECK LEVEL COMPLETE ----------
+function checkLevelComplete(){
+  if(!game.querySelector(".star") && !game.querySelector(".boss")){
+    level++; nextLevel(); updateUI();
   }
 }
 
 // ---------- TIMER ----------
 function updateTimerBar(){
-  const fill=document.getElementById("timerFill");
-  fill.style.width=(timeLeft/20*100)+"%";
+  document.getElementById("timerFill").style.width=(timeLeft/20*100)+"%";
 }
 
 // ---------- GAME OVER ----------
 function gameOver(){
-  clearInterval(gameTimer);
-  clearInterval(bossInterval);
+  clearInterval(gameTimer); clearInterval(bossInterval);
   overlay.style.display="flex";
   document.getElementById("overMsg").innerHTML=
     `${modes[mode].name}, чи үнэхээр сайн тоглолоо 💙<br>
