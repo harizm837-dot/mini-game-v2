@@ -12,9 +12,7 @@ button{padding:10px 18px;margin:6px;border:none;border-radius:8px;font-size:16px
 #panel{display:flex;justify-content:space-around;flex-wrap:wrap;margin:10px;}
 #game{height:65vh;position:relative;overflow:hidden;border:2px solid #fff;border-radius:12px;background:rgba(0,0,0,0.2);}
 .star,.bomb,.boss,.particle,.popup{position:absolute;cursor:pointer;user-select:none;}
-.star{transition: transform 0.3s ease-out;}
-.bomb{}
-.boss{transition:left 0.5s, top 0.5s;}
+.star,.bomb,.boss{transition: transform 0.3s ease-out;}
 .particle{font-size:16px;pointer-events:none;transition: all 0.7s ease-out;}
 .popup{font-weight:bold;pointer-events:none;transition: all 0.7s ease-out;}
 #startScreen,#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);
@@ -26,6 +24,7 @@ display:flex;flex-direction:column;justify-content:center;align-items:center;z-i
 #timerBar{width:90%;height:10px;background:rgba(255,255,255,0.3);margin:6px auto;border-radius:5px;overflow:hidden;}
 #timerFill{width:100%;height:100%;background:#ffd700;transition:width 1s linear;}
 #instructions{display:none;font-size:14px;color:#fff;margin:10px;text-align:left;}
+#backBtn{background:#444;}
 </style>
 </head>
 <body>
@@ -63,6 +62,7 @@ display:flex;flex-direction:column;justify-content:center;align-items:center;z-i
 <div>
   <button onclick="restartGame()">🔄 Restart</button>
   <button id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+  <button id="backBtn" onclick="backToStart()">🏠 Home</button>
 </div>
 <div id="game"></div>
 
@@ -97,11 +97,9 @@ const bombSound=new Audio('https://freesound.org/data/previews/276/276031_448618
 const bossSound=new Audio('https://freesound.org/data/previews/331/331914_3248244-lq.mp3');
 
 function toggleAudio(){ audioOn=!audioOn; document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF"; }
-function toggleInstructions(){
-  const inst = document.getElementById("instructions");
-  inst.style.display = (inst.style.display==="none") ? "block" : "none";
-}
+function toggleInstructions(){document.getElementById("instructions").style.display=(document.getElementById("instructions").style.display==="none")?"block":"none";}
 function selectMode(m){ mode=m; life=modes[m].life; document.getElementById("life").innerText=life; startGame(); }
+function backToStart(){ clearInterval(gameTimer); clearInterval(bossInterval); document.getElementById("startScreen").style.display="flex"; document.getElementById("overlay").style.display="none"; game.innerHTML=""; }
 function startGame(){document.getElementById("startScreen").style.display="none"; document.getElementById("overlay").style.display="none";
 score=0; level=1; life=modes[mode].life; paused=false; combo=0; nextLevel(); updateUI();}
 function restartGame(){ clearInterval(gameTimer); clearInterval(bossInterval); startGame(); }
@@ -120,7 +118,6 @@ function updateUI(){
 function nextLevel(){
   clearInterval(gameTimer); clearInterval(bossInterval);
   game.innerHTML=""; timeLeft=20; combo=0;
-  // font & background soligdoj
   const fonts=["Arial","Courier New","Verdana","Tahoma"];
   const bgs=["linear-gradient(120deg,#0f2027,#203a43,#2c5364)","linear-gradient(120deg,#11998e,#38ef7d)",
   "linear-gradient(120deg,#fc4a1a,#f7b733)","linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)","linear-gradient(120deg,#8360c3,#2ebf91)"];
@@ -146,7 +143,7 @@ function spawnStar(){
   const s=document.createElement("div"); s.className="star"; s.innerText="⭐";
   s.style.fontSize=modes[mode].starSize+"px";
   s.style.left=Math.random()*80+"%"; s.style.top=Math.random()*70+"%";
-  let dy = -0.3-Math.random()*0.2; // хөвж хөдлөх
+  let dy = -0.3-Math.random()*0.2;
   s.animInterval=setInterval(()=>{
     if(!paused){
       let top=parseFloat(s.style.top); top+=dy;
@@ -168,6 +165,10 @@ function spawnBomb(){
   const b=document.createElement("div"); b.className="bomb"; b.innerText="💣";
   b.style.fontSize=modes[mode].bombSize+"px";
   b.style.left=Math.random()*80+"%"; b.style.top=Math.random()*70+"%";
+  let dy = -0.1-Math.random()*0.2; // хөвж хөдөлнө
+  b.animInterval=setInterval(()=>{
+    if(!paused){ let top=parseFloat(b.style.top); top+=dy; if(top<0) top=70; b.style.top=top+"%"; }
+  },30);
   b.onclick=()=>{
     life--; combo=0; if(audioOn) bombSound.play();
     if(navigator.vibrate) navigator.vibrate(200); b.remove(); updateUI();
