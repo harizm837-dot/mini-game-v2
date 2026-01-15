@@ -5,36 +5,34 @@
 <title>⭐ AZHUR GAME ⭐</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{
-  margin:0; font-family:Arial,sans-serif; text-align:center; color:white;
-  background:linear-gradient(120deg,#0f2027,#203a43,#2c5364); transition: background 0.5s;
-  overflow-x:hidden;
-}
+body{margin:0;font-family:Arial,sans-serif;text-align:center;color:white;
+background:linear-gradient(120deg,#0f2027,#203a43,#2c5364);transition:background 0.5s;overflow-x:hidden;}
 h1{margin-top:20px}
-button{padding:10px 18px; margin:6px; border:none; border-radius:8px; font-size:16px; cursor:pointer;}
-#panel{display:flex; justify-content:space-around; flex-wrap:wrap; margin:10px;}
-#game{height:65vh; position:relative; overflow:hidden; border:2px solid #fff; border-radius:12px; background:rgba(0,0,0,0.2);}
-.star,.bomb,.boss,.particle,.popup{position:absolute; cursor:pointer; user-select:none;}
+button{padding:10px 18px;margin:6px;border:none;border-radius:8px;font-size:16px;cursor:pointer;}
+#panel{display:flex;justify-content:space-around;flex-wrap:wrap;margin:10px;}
+#game{height:65vh;position:relative;overflow:hidden;border:2px solid #fff;border-radius:12px;background:rgba(0,0,0,0.2);}
+.star,.bomb,.boss,.particle,.popup{position:absolute;cursor:pointer;user-select:none;}
 .star{transition: transform 0.3s ease-out;}
 .bomb{}
 .boss{transition:left 0.5s, top 0.5s;}
-.particle{font-size:16px; pointer-events:none; transition: all 0.7s ease-out;}
-.popup{font-weight:bold; pointer-events:none; transition: all 0.7s ease-out;}
-#startScreen,#overlay{position:fixed; top:0;left:0; width:100%;height:100%; background:rgba(0,0,0,.88); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10;}
+.particle{font-size:16px;pointer-events:none;transition: all 0.7s ease-out;}
+.popup{font-weight:bold;pointer-events:none;transition: all 0.7s ease-out;}
+#startScreen,#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);
+display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:10;}
 #overlay{display:none}
 #modeButtons button{width:180px;}
 #pauseBtn{background:#444;}
 #audioBtn{background:#444;}
-#timerBar{width:90%; height:10px; background:rgba(255,255,255,0.3); margin:6px auto; border-radius:5px; overflow:hidden;}
-#timerFill{width:100%; height:100%; background:#ffd700; transition: width 1s linear;}
-#instructions{display:none; font-size:14px; color:#fff; margin:10px; text-align:left;}
+#timerBar{width:90%;height:10px;background:rgba(255,255,255,0.3);margin:6px auto;border-radius:5px;overflow:hidden;}
+#timerFill{width:100%;height:100%;background:#ffd700;transition:width 1s linear;}
+#instructions{display:none;font-size:14px;color:#fff;margin:10px;text-align:left;}
 </style>
 </head>
 <body>
 
 <div id="startScreen">
   <h1>⭐ AZHUR GAME ⭐</h1>
-  <p>Хүүхдүүдээ, аав нь илүү сайнынг хийж өгнө өө😎💙</p>
+  <p>Хүүхдүүдээ, аав нь илүү сайныг хийж өгнө өө😎💙</p>
   <div id="modeButtons">
     <button onclick="selectMode('Az')">⭐ Азхур Mode ⭐</button>
     <button onclick="selectMode('Iv')">⭐ Ивээлт Mode ⭐</button>
@@ -74,18 +72,18 @@ button{padding:10px 18px; margin:6px; border:none; border-radius:8px; font-size:
 </div>
 
 <script>
-let score=0, level=1, life=3, mode='Az', gameTimer, timeLeft=20, paused=false;
+let score=0, level=1, life=3, mode='Az', gameTimer, timeLeft=20, paused=false, combo=0;
 let bestLevel=JSON.parse(localStorage.getItem("bestLevel")||'{"Az":1,"Iv":1,"Ari":1}');
 let bestScore=JSON.parse(localStorage.getItem("bestScore")||'{"Az":0,"Iv":0,"Ari":0}');
-let audioOn=true, bossInterval, combo=0;
+let audioOn=true, bossInterval;
+
 const game=document.getElementById("game");
 const msg=document.getElementById("msg");
-const overlay=document.getElementById("overlay");
 
 const modes = {
-  'Az':{name:'Азхур аа',life:3,boss:true,starSize:32,bombSize:34,bossSize:48,popupColor:'yellow',popupSize:24},
-  'Iv':{name:'Ивээлт хүү минь',life:4,boss:true,starSize:28,bombSize:32,bossSize:44,popupColor:'lime',popupSize:22},
-  'Ari':{name:'Ариунхур охин минь',life:5,boss:true,starSize:40,bombSize:36,bossSize:48,popupColor:'pink',popupSize:26}
+  'Az':{name:'Азхур аа',life:3,boss:true,starSize:36,bombSize:36,bossSize:50,popupColor:'yellow',popupSize:24,difficulty:'hard'},
+  'Iv':{name:'Ивээлт хүү минь',life:4,boss:true,starSize:28,bombSize:32,bossSize:44,popupColor:'lime',popupSize:22,difficulty:'medium'},
+  'Ari':{name:'Ариунхур охин минь',life:5,boss:true,starSize:32,bombSize:34,bossSize:48,popupColor:'pink',popupSize:26,difficulty:'easy'}
 };
 
 const praise = {
@@ -99,22 +97,13 @@ const bombSound=new Audio('https://freesound.org/data/previews/276/276031_448618
 const bossSound=new Audio('https://freesound.org/data/previews/331/331914_3248244-lq.mp3');
 
 function toggleAudio(){ audioOn=!audioOn; document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF"; }
-
 function toggleInstructions(){
   const inst = document.getElementById("instructions");
   inst.style.display = (inst.style.display==="none") ? "block" : "none";
 }
-
-function selectMode(m){
-  mode=m; life=modes[m].life; document.getElementById("life").innerText=life; startGame();
-}
-
-function startGame(){
-  document.getElementById("startScreen").style.display="none"; overlay.style.display="none";
-  score=0; level=1; life=modes[mode].life; paused=false; combo=0;
-  nextLevel(); updateUI();
-}
-
+function selectMode(m){ mode=m; life=modes[m].life; document.getElementById("life").innerText=life; startGame(); }
+function startGame(){document.getElementById("startScreen").style.display="none"; document.getElementById("overlay").style.display="none";
+score=0; level=1; life=modes[mode].life; paused=false; combo=0; nextLevel(); updateUI();}
 function restartGame(){ clearInterval(gameTimer); clearInterval(bossInterval); startGame(); }
 function togglePause(){ paused=!paused; document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause"; }
 
@@ -131,9 +120,15 @@ function updateUI(){
 function nextLevel(){
   clearInterval(gameTimer); clearInterval(bossInterval);
   game.innerHTML=""; timeLeft=20; combo=0;
+  // font & background soligdoj
+  const fonts=["Arial","Courier New","Verdana","Tahoma"];
+  const bgs=["linear-gradient(120deg,#0f2027,#203a43,#2c5364)","linear-gradient(120deg,#11998e,#38ef7d)",
+  "linear-gradient(120deg,#fc4a1a,#f7b733)","linear-gradient(120deg,#1a2a6c,#b21f1f,#fdbb2d)","linear-gradient(120deg,#8360c3,#2ebf91)"];
+  document.body.style.fontFamily=fonts[level%fonts.length];
+  document.body.style.background=bgs[level%bgs.length];
 
-  let starsCount=Math.floor(1+level*0.5);
-  let bombsCount=(mode==='Iv'?2:(mode==='Ari'?1:2));
+  let starsCount=Math.floor(1+level*(modes[mode].difficulty==='hard'?1:0.6));
+  let bombsCount=(mode==='Iv'?1:(mode==='Ari'?1:2));
   let bossCount=(level>=3 && modes[mode].boss?1:0);
 
   for(let i=0;i<starsCount;i++) spawnStar();
@@ -146,19 +141,29 @@ function nextLevel(){
   },1000);
 }
 
-// ---------- SPAWN ----------
+// SPAWN од
 function spawnStar(){
   const s=document.createElement("div"); s.className="star"; s.innerText="⭐";
   s.style.fontSize=modes[mode].starSize+"px";
   s.style.left=Math.random()*80+"%"; s.style.top=Math.random()*70+"%";
+  let dy = -0.3-Math.random()*0.2; // хөвж хөдлөх
+  s.animInterval=setInterval(()=>{
+    if(!paused){
+      let top=parseFloat(s.style.top); top+=dy;
+      if(top<0) top=70;
+      s.style.top=top+"%";
+    }
+  },30);
   s.onclick=()=>{
-    score+=10; combo++; showPopup("+"+10, s.offsetLeft, s.offsetTop);
+    combo++; score+=10+combo*2;
+    showPopup("+"+(10+combo*2),s.offsetLeft,s.offsetTop);
     if(audioOn) starSound.play();
-    s.remove(); checkLevelComplete(); updateUI();
+    clearInterval(s.animInterval); s.remove(); checkLevelComplete(); updateUI();
   };
   game.appendChild(s);
 }
 
+// SPAWN бомб
 function spawnBomb(){
   const b=document.createElement("div"); b.className="bomb"; b.innerText="💣";
   b.style.fontSize=modes[mode].bombSize+"px";
@@ -171,6 +176,7 @@ function spawnBomb(){
   game.appendChild(b);
 }
 
+// SPAWN boss
 function spawnBoss(){
   let hp=3;
   const boss=document.createElement("div"); boss.className="boss"; boss.innerText="👾";
@@ -179,15 +185,15 @@ function spawnBoss(){
   game.appendChild(boss);
   bossInterval=setInterval(()=>{
     if(!paused){ boss.style.left=Math.random()*80+"%"; boss.style.top=Math.random()*70+"%"; }
-  },800);
+  },700-(level*10));
   boss.onclick=()=>{
-    hp--; score+=15; combo++; showPopup("+15", boss.offsetLeft, boss.offsetTop);
+    hp--; combo++; score+=10+combo*2; showPopup("+"+(10+combo*2),boss.offsetLeft,boss.offsetTop);
     if(audioOn) bossSound.play();
     if(hp<=0){ boss.remove(); checkLevelComplete(); updateUI(); }
   };
 }
 
-// ---------- POPUP ----------
+// POPUP
 function showPopup(text,x,y){
   const p=document.createElement("div"); p.className="popup"; p.innerText=text;
   p.style.left=x+"px"; p.style.top=y+"px"; p.style.color=modes[mode].popupColor;
@@ -196,20 +202,20 @@ function showPopup(text,x,y){
   setTimeout(()=>p.remove(),700);
 }
 
-// ---------- CHECK LEVEL COMPLETE ----------
+// CHECK LEVEL COMPLETE
 function checkLevelComplete(){
   if(!game.querySelector(".star") && !game.querySelector(".boss")){
     level++; nextLevel(); updateUI();
   }
 }
 
-// ---------- TIMER ----------
+// TIMER
 function updateTimerBar(){ document.getElementById("timerFill").style.width=(timeLeft/20*100)+"%"; }
 
-// ---------- GAME OVER ----------
+// GAME OVER
 function gameOver(){
   clearInterval(gameTimer); clearInterval(bossInterval);
-  overlay.style.display="flex";
+  document.getElementById("overlay").style.display="flex";
   document.getElementById("overMsg").innerHTML=
     `${modes[mode].name}, чи үнэхээр сайн тоглолоо 💙<br>
      Level: ${level}<br>
