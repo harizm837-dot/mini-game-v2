@@ -5,28 +5,29 @@
 <title>⭐ AZHUR GAME ⭐</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{margin:0;font-family:Arial,sans-serif;text-align:center;color:white;background:linear-gradient(120deg,#0f2027,#203a43,#2c5364);overflow-x:hidden;transition:background 0.5s;}
-h1{margin-top:20px;}
-button{padding:10px 18px;margin:6px;border:none;border-radius:8px;font-size:16px;cursor:pointer;}
-#panel{display:flex;justify-content:space-around;flex-wrap:wrap;margin:10px;}
-#game{height:65vh;position:relative;overflow:hidden;border:2px solid #fff;border-radius:12px;background:rgba(0,0,0,0.2);}
-.star,.bomb,.boss,.particle{position:absolute;cursor:pointer;user-select:none;}
+body{
+  margin:0; font-family:Arial,sans-serif; text-align:center; color:white;
+  background:linear-gradient(120deg,#0f2027,#203a43,#2c5364); transition: background 0.5s;
+  overflow-x:hidden;
+}
+h1{margin-top:20px}
+button{padding:10px 18px; margin:6px; border:none; border-radius:8px; font-size:16px; cursor:pointer;}
+#panel{display:flex; justify-content:space-around; flex-wrap:wrap; margin:10px;}
+#game{height:65vh; position:relative; overflow:hidden; border:2px solid #fff; border-radius:12px; background:rgba(0,0,0,0.2);}
+.star,.bomb,.boss,.particle,.popup{position:absolute; cursor:pointer; user-select:none;}
 .star{transition: transform 0.3s ease-out;}
 .bomb{}
-.boss{transition: left 0.5s, top 0.5s;}
-.particle{font-size:16px;pointer-events:none;transition: all 0.7s ease-out;}
-#startScreen,#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:10;}
-#overlay{display:none;}
-#timerBar{width:90%;height:10px;background:rgba(255,255,255,0.3);margin:6px auto;border-radius:5px;overflow:hidden;}
-#timerFill{width:100%;height:100%;background:#ffd700;transition:width 1s linear;}
-
-/* POPUPS */
-.popup-ari{font-size:34px;color:#ffeb3b;text-shadow:2px 2px 6px #000;animation:ariUp 1.4s ease-out forwards;}
-.popup-iv{font-size:26px;color:#ffd700;text-shadow:2px 2px 4px #000;animation:ivUp 1s ease-out forwards;}
-.popup-az{font-size:20px;color:#00ffff;text-shadow:1px 1px 2px #000;animation:azUp 0.7s linear forwards;}
-@keyframes ariUp{to{opacity:0;transform:translateY(-30px);}}
-@keyframes ivUp{to{opacity:0;transform:translateY(-40px);}}
-@keyframes azUp{to{opacity:0;transform:translateY(-60px);}}
+.boss{transition:left 0.5s, top 0.5s;}
+.particle{font-size:16px; pointer-events:none; transition: all 0.7s ease-out;}
+.popup{font-weight:bold; pointer-events:none; transition: all 0.7s ease-out;}
+#startScreen,#overlay{position:fixed; top:0;left:0; width:100%;height:100%; background:rgba(0,0,0,.88); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10;}
+#overlay{display:none}
+#modeButtons button{width:180px;}
+#pauseBtn{background:#444;}
+#audioBtn{background:#444;}
+#timerBar{width:90%; height:10px; background:rgba(255,255,255,0.3); margin:6px auto; border-radius:5px; overflow:hidden;}
+#timerFill{width:100%; height:100%; background:#ffd700; transition: width 1s linear;}
+#instructions{display:none; font-size:14px; color:#fff; margin:10px; text-align:left;}
 </style>
 </head>
 <body>
@@ -40,18 +41,26 @@ button{padding:10px 18px;margin:6px;border:none;border-radius:8px;font-size:16px
     <button onclick="selectMode('Ari')">⭐ Ариунхур Mode ⭐</button>
   </div>
   <button id="audioBtn" onclick="toggleAudio()">🔊 Дуу ON/OFF</button>
+  <button onclick="toggleInstructions()">ℹ️ Тоглоомын заавар</button>
+  <div id="instructions">
+    <strong>Тоглоомын заавар:</strong><br>
+    ⭐-г дарж оноо авах<br>
+    💣-г дарвал амь хасагдана<br>
+    👾 Boss-г дарж алвал нэмэлт оноо авна<br>
+    Level ахихад од болон boss нэмэгдэнэ<br>
+    Хугацаа дуусахаас өмнө бүх одыг дарвал level ахина<br>
+    Дахин товчлуур дарвал энэ заавар хаагдана
+  </div>
 </div>
 
 <h1>⭐ AZHUR GAME ⭐</h1>
 <div id="msg">Азхур мундаг! 💪</div>
-
 <div id="panel">
   <div>Үе: <span id="level">1</span></div>
   <div>Оноо: <span id="score">0</span></div>
   <div>❤️ <span id="life">3</span></div>
   <div>🏆 Best: <span id="bestLevel">1</span></div>
 </div>
-
 <div id="timerBar"><div id="timerFill"></div></div>
 <div>
   <button onclick="restartGame()">🔄 Restart</button>
@@ -65,19 +74,21 @@ button{padding:10px 18px;margin:6px;border:none;border-radius:8px;font-size:16px
 </div>
 
 <script>
-let score=0,level=1,life=3,timeLeft=20,paused=false,combo=0,mode='Az',audioOn=true,bossInterval;
-let bestLevel=localStorage.getItem("bestLevel")||1;
+let score=0, level=1, life=3, mode='Az', gameTimer, timeLeft=20, paused=false;
+let bestLevel=JSON.parse(localStorage.getItem("bestLevel")||'{"Az":1,"Iv":1,"Ari":1}');
+let bestScore=JSON.parse(localStorage.getItem("bestScore")||'{"Az":0,"Iv":0,"Ari":0}');
+let audioOn=true, bossInterval, combo=0;
 const game=document.getElementById("game");
 const msg=document.getElementById("msg");
 const overlay=document.getElementById("overlay");
 
-const modes={
-  'Az':{name:'Азхур аа',life:3,boss:true,key:"az",star:"⭐",bomb:"💣",boss:"👾"},
-  'Iv':{name:'Ивээлт хүү минь',life:4,boss:true,key:"iv",star:"🌟",bomb:"💥",boss:"👽"},
-  'Ari':{name:'Ариунхур охин минь',life:5,boss:true,key:"ari",star:"✨",bomb:"🧨",boss:"🎃"}
+const modes = {
+  'Az':{name:'Азхур аа',life:3,boss:true,starSize:32,bombSize:34,bossSize:48,popupColor:'yellow',popupSize:24},
+  'Iv':{name:'Ивээлт хүү минь',life:4,boss:true,starSize:28,bombSize:32,bossSize:44,popupColor:'lime',popupSize:22},
+  'Ari':{name:'Ариунхур охин минь',life:5,boss:true,starSize:40,bombSize:36,bossSize:48,popupColor:'pink',popupSize:26}
 };
 
-const praise={
+const praise = {
   'Az':["Азхур аа, чи үнэхээр мундаг хүү! 💪","Ямар сайн тоглож байна аа! ⭐","Чи чадлаа, Азхур! 🚀"],
   'Iv':["Ивээлт хүү минь, чи гайхалтай! 💪","Ивээлт хүү минь, Аавын Superman 💞⭐"],
   'Ari':["Ариунхур охин минь, үнэхээр мундаг! 💖","Ариунхур охин минь, Аавын хайртай гүнж шүү😘💞🌟"]
@@ -87,138 +98,123 @@ const starSound=new Audio('https://freesound.org/data/previews/331/331912_324824
 const bombSound=new Audio('https://freesound.org/data/previews/276/276031_4486188-lq.mp3');
 const bossSound=new Audio('https://freesound.org/data/previews/331/331914_3248244-lq.mp3');
 
+function toggleAudio(){ audioOn=!audioOn; document.getElementById("audioBtn").innerText = audioOn ? "🔊 Дуу ON" : "🔇 Дуу OFF"; }
+
+function toggleInstructions(){
+  const inst = document.getElementById("instructions");
+  inst.style.display = (inst.style.display==="none") ? "block" : "none";
+}
+
 function selectMode(m){
-  mode=m; loadProgress();
-  life=modes[m].life;
-  document.getElementById("life").innerText=life;
-  startGame();
-}
-
-function toggleAudio(){ audioOn=!audioOn; document.getElementById("audioBtn").innerText= audioOn?"🔊 Дуу ON":"🔇 Дуу OFF"; }
-
-function saveProgress(){
-  const key=modes[mode].key;
-  localStorage.setItem(key+"_score",score);
-  localStorage.setItem(key+"_level",level);
-}
-
-function loadProgress(){
-  const key=modes[mode].key;
-  score=parseInt(localStorage.getItem(key+"_score"))||0;
-  level=parseInt(localStorage.getItem(key+"_level"))||1;
-}
-
-function showScorePopup(text,x,y){
-  const pop=document.createElement("div");
-  pop.className=mode==="Ari"?"popup-ari":mode==="Iv"?"popup-iv":"popup-az";
-  pop.style.position="absolute";
-  pop.style.left=x+"px";
-  pop.style.top=y+"px";
-  pop.style.pointerEvents="none";
-  pop.innerText=text;
-  game.appendChild(pop);
-  setTimeout(()=>pop.remove(),1500);
+  mode=m; life=modes[m].life; document.getElementById("life").innerText=life; startGame();
 }
 
 function startGame(){
-  document.getElementById("startScreen").style.display="none";
-  overlay.style.display="none";
-  updateUI();
-  nextLevel();
+  document.getElementById("startScreen").style.display="none"; overlay.style.display="none";
+  score=0; level=1; life=modes[mode].life; paused=false; combo=0;
+  nextLevel(); updateUI();
 }
 
-function restartGame(){
-  clearInterval(bossInterval);
-  startGame();
-}
-
-function togglePause(){
-  paused=!paused;
-  document.getElementById("pauseBtn").innerText = paused?"▶ Resume":"⏸ Pause";
-}
+function restartGame(){ clearInterval(gameTimer); clearInterval(bossInterval); startGame(); }
+function togglePause(){ paused=!paused; document.getElementById("pauseBtn").innerText = paused ? "▶ Resume" : "⏸ Pause"; }
 
 function updateUI(){
   document.getElementById("score").innerText=score;
   document.getElementById("level").innerText=level;
-  document.getElementById("bestLevel").innerText=bestLevel;
   document.getElementById("life").innerText=life;
+  if(level>bestLevel[mode]){ bestLevel[mode]=level; localStorage.setItem("bestLevel",JSON.stringify(bestLevel)); }
+  if(score>bestScore[mode]){ bestScore[mode]=score; localStorage.setItem("bestScore",JSON.stringify(bestScore)); }
+  document.getElementById("bestLevel").innerText=bestLevel[mode];
   msg.innerText=praise[mode][Math.floor(Math.random()*praise[mode].length)];
 }
 
 function nextLevel(){
-  clearInterval(bossInterval);
-  game.innerHTML="";
-  timeLeft=20; combo=0;
+  clearInterval(gameTimer); clearInterval(bossInterval);
+  game.innerHTML=""; timeLeft=20; combo=0;
+
   let starsCount=Math.floor(1+level*0.5);
   let bombsCount=(mode==='Iv'?2:(mode==='Ari'?1:2));
   let bossCount=(level>=3 && modes[mode].boss?1:0);
+
   for(let i=0;i<starsCount;i++) spawnStar();
   for(let i=0;i<bombsCount;i++) spawnBomb();
   for(let i=0;i<bossCount;i++) spawnBoss();
 
+  updateTimerBar();
   gameTimer=setInterval(()=>{
     if(!paused){ timeLeft--; updateTimerBar(); if(timeLeft<=0) gameOver(); }
   },1000);
 }
 
+// ---------- SPAWN ----------
 function spawnStar(){
-  const s=document.createElement("div"); s.className="star"; s.innerText=modes[mode].star;
+  const s=document.createElement("div"); s.className="star"; s.innerText="⭐";
+  s.style.fontSize=modes[mode].starSize+"px";
   s.style.left=Math.random()*80+"%"; s.style.top=Math.random()*70+"%";
   s.onclick=()=>{
-    combo++; score+=10+combo*2;
+    score+=10; combo++; showPopup("+"+10, s.offsetLeft, s.offsetTop);
     if(audioOn) starSound.play();
-    showScorePopup("+"+(10+combo*2),s.offsetLeft,s.offsetTop);
-    s.remove();
-    saveProgress();
-    if(!game.querySelector(".star") && !game.querySelector(".boss")){ level++; saveProgress(); nextLevel(); updateUI(); }
-    updateUI();
+    s.remove(); checkLevelComplete(); updateUI();
   };
   game.appendChild(s);
 }
 
 function spawnBomb(){
-  const b=document.createElement("div"); b.className="bomb"; b.innerText=modes[mode].bomb;
+  const b=document.createElement("div"); b.className="bomb"; b.innerText="💣";
+  b.style.fontSize=modes[mode].bombSize+"px";
   b.style.left=Math.random()*80+"%"; b.style.top=Math.random()*70+"%";
   b.onclick=()=>{
-    life--; combo=0;
-    if(audioOn) bombSound.play();
-    if(navigator.vibrate) navigator.vibrate(200);
-    showScorePopup("-5",b.offsetLeft,b.offsetTop);
-    b.remove();
-    updateUI();
+    life--; combo=0; if(audioOn) bombSound.play();
+    if(navigator.vibrate) navigator.vibrate(200); b.remove(); updateUI();
     if(life<=0) gameOver();
   };
   game.appendChild(b);
 }
 
 function spawnBoss(){
-  let hp=(mode==='Ari'?1:mode==='Iv'?2:3);
-  const boss=document.createElement("div"); boss.className="boss"; boss.innerText=modes[mode].boss;
+  let hp=3;
+  const boss=document.createElement("div"); boss.className="boss"; boss.innerText="👾";
+  boss.style.fontSize=modes[mode].bossSize+"px";
   boss.style.left="45%"; boss.style.top="40%";
   game.appendChild(boss);
   bossInterval=setInterval(()=>{
     if(!paused){ boss.style.left=Math.random()*80+"%"; boss.style.top=Math.random()*70+"%"; }
   },800);
   boss.onclick=()=>{
-    hp--; combo++; score+=10+combo*2;
+    hp--; score+=15; combo++; showPopup("+15", boss.offsetLeft, boss.offsetTop);
     if(audioOn) bossSound.play();
-    showScorePopup("+"+(10+combo*2),boss.offsetLeft,boss.offsetTop);
-    if(hp<=0){ boss.remove(); combo=0; saveProgress(); checkLevelComplete(); }
-    updateUI();
+    if(hp<=0){ boss.remove(); checkLevelComplete(); updateUI(); }
   };
 }
 
-function checkLevelComplete(){
-  if(!game.querySelector(".star") && !game.querySelector(".boss")){ level++; saveProgress(); nextLevel(); updateUI(); }
+// ---------- POPUP ----------
+function showPopup(text,x,y){
+  const p=document.createElement("div"); p.className="popup"; p.innerText=text;
+  p.style.left=x+"px"; p.style.top=y+"px"; p.style.color=modes[mode].popupColor;
+  p.style.fontSize=modes[mode].popupSize+"px"; game.appendChild(p);
+  setTimeout(()=>{p.style.transform="translateY(-30px)"; p.style.opacity="0";},10);
+  setTimeout(()=>p.remove(),700);
 }
 
+// ---------- CHECK LEVEL COMPLETE ----------
+function checkLevelComplete(){
+  if(!game.querySelector(".star") && !game.querySelector(".boss")){
+    level++; nextLevel(); updateUI();
+  }
+}
+
+// ---------- TIMER ----------
 function updateTimerBar(){ document.getElementById("timerFill").style.width=(timeLeft/20*100)+"%"; }
 
+// ---------- GAME OVER ----------
 function gameOver(){
   clearInterval(gameTimer); clearInterval(bossInterval);
   overlay.style.display="flex";
   document.getElementById("overMsg").innerHTML=
-    `${modes[mode].name}, чи үнэхээр сайн тоглолоо 💙<br>Level: ${level}<br>Оноо: ${score}<br><br>Аав нь чамаар бахархаж байна!`;
+    `${modes[mode].name}, чи үнэхээр сайн тоглолоо 💙<br>
+     Level: ${level}<br>
+     Оноо: ${score}<br><br>
+     Аав нь чамаар бахархаж байна!`;
 }
 </script>
 </body>
